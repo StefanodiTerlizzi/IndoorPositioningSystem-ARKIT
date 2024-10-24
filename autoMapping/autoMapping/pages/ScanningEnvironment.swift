@@ -7,6 +7,8 @@
 
 import SwiftUI
 import ARKit
+import PhotosUI
+import UIKit
 
 struct ScanningEnvironment: View {
     
@@ -47,10 +49,17 @@ struct ScanningEnvironment: View {
     @State var trackingState = ""
     
     @State private var mapName: String = ""
+    @State private var imageName: String = ""
+    @State private var selectedItem: PhotosPickerItem?=nil
+    @State var selectedImage: UIImage?=nil
+    @State private var imageDescription: String = ""
+    @State private var imageWidth: String = ""
+    @State private var imageHeight: String = ""
     @State private var showMergeButton = true
     @State private var showContinueButton = false
     @State private var showSaveButton = true
     @State private var showAlertForMapName = false
+    @State private var showAlertForImages = false
 
     
     let list = listOfFilesURL(path: ["Maps"])
@@ -189,8 +198,54 @@ struct ScanningEnvironment: View {
             TextField("Map name:", text: $mapName)
             Button("OK") {
                 print("Nome mappa Salvato: " + mapName)
+                self.showAlertForMapName = false
+                self.showAlertForImages = true
             }
             Button("Annulla", role: .cancel) {
+                //presentationMode.wrappedValue.dismiss()
+            }
+        }.alert("Select Images:", isPresented: $showAlertForImages) {
+            PhotosPicker(
+                selection: $selectedItem,
+                matching: .images,
+                preferredItemEncoding:.current,
+                photoLibrary:.shared()){
+                 Text("Select Photo")
+                }.onChange(of: selectedItem){
+                    newItem in if let newItem = newItem{
+                        newItem.loadTransferable(type:ProfileImage.self){result in switch result{
+                        case .success(let image):
+                            if let image=image{
+                                selectedImage=image.image
+                            }
+                        case .failure(let error):
+                            print("Error loading image: \(error)")
+                        }}
+                    }
+                }
+            if let selectedImage=selectedImage{
+                Image(uiImage: selectedImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
+            }
+            
+            TextField("Image name:", text: $imageName)
+            TextField("Image description:", text: $imageDescription)
+            TextField("Image width:", text: $imageWidth).keyboardType(.decimalPad)
+            TextField("Image height:", text: $imageHeight).keyboardType(.decimalPad)
+            Button("Load Image"){
+                roomcaptureView.loadImages(
+                    image: selectedImage!,
+                    name:imageName,
+                    description:imageDescription,
+                    width:imageWidth,
+                    height:imageHeight)
+            }
+            Button("OK") {
+                print("Images saved: " + imageName)
+            }
+            Button("Reset", role: .cancel) {
                 //presentationMode.wrappedValue.dismiss()
             }
         }
@@ -207,4 +262,19 @@ struct ScanningEnvironment: View {
 
 #Preview {
     ScanningEnvironment()
+}
+
+
+
+
+struct ProfileImage: Transferable{
+    let image: UIImage
+    
+    static var transferRepresentation: some TransferRepresentation{
+        DataRepresentation(importedContentType: .image){
+            data in let uiImage = UIImage(data:data)
+            let image = uiImage
+            return ProfileImage(image:image!)
+        }
+    }
 }

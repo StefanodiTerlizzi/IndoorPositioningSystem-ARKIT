@@ -8,6 +8,7 @@
 import SwiftUI
 import RoomPlan
 import ARKit
+import PhotosUI
 
 struct RoomCaptureViewContainer: UIViewRepresentable {
     
@@ -22,6 +23,13 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     private var isScanning: Bool = false
     
     private let configuration: RoomCaptureSession.Configuration = RoomCaptureSession.Configuration()
+    
+    var imageSelection:PhotosPickerItem? = nil {
+        didSet{
+            
+        }
+    }
+    
     
     init() {
         print("init roomCaptureView")
@@ -57,6 +65,14 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         } else {
             roomCaptureView!.captureSession.stop()
         }
+    }
+    
+    func loadImages(image: UIImage, name: String, description: String, width: String, height: String){
+        
+        let x_size: Float = Float(width)!
+        let y_size: Float = Float(height)!
+        
+        CoreDataManager.shared.saveItem(name: name, x_size: x_size, y_size: y_size, comment: description, image: image)
     }
     
     func continueCapture() {
@@ -165,6 +181,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             print(CapturedRoom.self)
             self.finalResults = processedResult
         }
+        
         
         // MARK: - ARSessionDelegate
         //shows the current status of the world map.

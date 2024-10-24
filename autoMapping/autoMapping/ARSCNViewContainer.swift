@@ -65,9 +65,17 @@ struct ARSCNViewContainer: UIViewRepresentable {
             }
         }
         
+        guard let referenceImage = extractReferenceImages() else {
+            print("No image retieved.")
+            return
+        }
         
         configuration.initialWorldMap = worldMap
+        configuration.detectionImages = referenceImage
+        configuration.maximumNumberOfTrackedImages = referenceImage.count
         
+        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(delegate.handleTap(gestureRecognize:)))
+        sceneView.addGestureRecognizer(tapGestureRecognizer)
         sceneView.debugOptions = [.showFeaturePoints, .showWorldOrigin]
         sceneView.session.run(configuration, options: options)
         
@@ -106,6 +114,8 @@ struct ARSCNViewContainer: UIViewRepresentable {
     
     func updateUIView(_ uiView: ARSCNView, context: Context) {}
     
+    
+    
 }
 
 class ARSCNDelegate: NSObject, ARSCNViewDelegate {
@@ -124,6 +134,35 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
     // MARK: - ARSCNViewDelegate
     
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        
+        DispatchQueue.main.async{
+            
+            guard let imageAnchor = anchor as? ARImageAnchor else{return}
+            let referenceImage = imageAnchor.referenceImage
+            let refeenceImageName = referenceImage.name
+            
+            let position = SCNVector3(
+                x: imageAnchor.transform.columns.3.x,
+                y: imageAnchor.transform.columns.3.y,
+                z: imageAnchor.transform.columns.3.z
+            )
+            let width = referenceImage.physicalSize.width
+            let height = referenceImage.physicalSize.height
+            let material = SCNMaterial()
+            material.diffuse.contents = UIColor.red
+            
+            let box = SCNBox(width: width, height: height, length: 0.02, chamferRadius: 0)
+            box.materials = [material]
+            let boxNode = SCNNode(geometry: box)
+            let orientation = SCNMatrix4(imageAnchor.transform)
+            
+            boxNode.transform = orientation
+            boxNode.position = position
+            boxNode.name = refeenceImageName
+            
+            node.addChildNode(boxNode)
+            
+        }
         /*guard !(anchor is ARPlaneAnchor) else { return }
         var color = UIColor(red: 255, green: 255, blue: 255, alpha: 1.0)
         if let n = anchor.name, n.hasPrefix("door") {color = UIColor(red: 255, green: 0, blue: 0, alpha: 1.0)}
@@ -149,6 +188,61 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .trackingState, object: self.trState)
         }
+        
+    }
+    
+    @objc func handleTap(gestureRecognize: UITapGestureRecognizer) {
+        let sceneViewTappedOn = gestureRecognize.view as! ARSCNView
+        let touchLocation = gestureRecognize.location(in: sceneViewTappedOn)
+        
+        let hitTestResults = sceneViewTappedOn.hitTest(touchLocation, options: nil)
+        
+        if let result = hitTestResults.first {
+            let tappedNode = result.node
+            if tappedNode.geometry is SCNBox {
+                showInfoPanel(for: tappedNode)
+            }
+        }
+    }
+    
+    func showInfoPanel(for node: SCNNode){
+        let position = node.position
+        let panelWidth: CGFloat = 0.3
+        let panelHeight: CGFloat = 0.4
+        let panel = SCNPlane(width: panelWidth, height: panelHeight)
+        
+        let material = SCNMaterial()
+        let infoItem: Item? = CoreDataManager.shared.fetchItemByName(name: node.name ?? "Unknown image")
+        let infoView = createInfoView(infoItem: infoItem)
+        material.diffuse.contents = infoView.asImage()
+        let panelNode = SCNNode(geometry: panel)
+        panelNode.position = SCNVector3(position.x, position.y + 0.3, position.z)
+        
+    }
+    
+    func createInfoView(infoItem: Item?) -> UIView{
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        view.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+        
+        let nameLabel = UILabel(frame: CGRect(x: 10, y: 10, width: 280, height: 20))
+        nameLabel.text = "Work Name: \(String(describing: infoItem?.name))"
+        view.addSubview(nameLabel)
+        
+        let descriptionLabel = UILabel(frame: CGRect(x: 10, y: 40, width: 280, height: 40))
+        descriptionLabel.text = "Description: \(String(describing: infoItem?.comment))"
+        view.addSubview(descriptionLabel)
+        
+        let imageView = UIImageView(frame: CGRect(x: 10, y: 90, width: 100, height: 100))
+        if let imageData = infoItem?.imageData, let uiImage = UIImage(data: imageData){
+            imageView.image = uiImage
+        }
+        view.addSubview(imageView)
+        
+        let dimensionLabel = UILabel(frame: CGRect(x: 10, y: 200, width: 280, height: 20))
+        dimensionLabel.text = "Dimension: \(String(describing: infoItem?.x_size)) x \(String(describing: infoItem?.y_size))."
+        
+        
+        return view
     }
     
     
@@ -158,5 +252,41 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
 struct ARSCNViewContainer_Previews: PreviewProvider {
     static var previews: some View {
         ARSCNViewContainer()
+    }
+}
+
+func fetchDataItem() -> [Item]{
+    let items: [Item] = CoreDataManager.shared.fetchAllItem()
+    return items
+}
+
+func extractReferenceImages() -> Set<ARReferenceImage>? {
+    let items = fetchDataItem()
+    var referenceImages = Set<ARReferenceImage>()
+    
+    for item in items {
+        if let imageData = item.imageData, let uiImage = UIImage(data: imageData) {
+            guard let cgImage = uiImage.cgImage else {
+                print("Error in converision from UIImage to CGImage")
+                continue
+            }
+            
+            let imageSizeInMeters: CGFloat = CGFloat(item.x_size)
+            let arImage = ARReferenceImage(cgImage, orientation: .up, physicalWidth: imageSizeInMeters)
+            
+            arImage.name = item.name ?? "Unknown Image"
+            referenceImages.insert(arImage)
+            
+        }
+    }
+    return referenceImages.isEmpty ? nil : referenceImages
+}
+
+extension UIView {
+    func asImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(bounds: bounds)
+        return renderer.image {
+            rendererContext in layer.render(in: rendererContext.cgContext)
+        }
     }
 }

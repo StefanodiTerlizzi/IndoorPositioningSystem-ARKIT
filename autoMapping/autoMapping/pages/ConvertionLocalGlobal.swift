@@ -256,7 +256,7 @@ struct ConvertionLocalGlobal: View {
                         .sorted(by: {a,b in a.scale.x>b.scale.x})
                         .map{node in node.name ?? "nil"} ?? []
                         
-                        print("Child Nodes: \(localView.scnView.scene?.rootNode.childNodes)")
+                        print("Child Nodes: \(String(describing: localView.scnView.scene?.rootNode.childNodes))")
                     })
                 }
                 
