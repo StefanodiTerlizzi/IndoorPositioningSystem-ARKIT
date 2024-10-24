@@ -73,6 +73,10 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         let y_size: Float = Float(height)!
         
         CoreDataManager.shared.saveItem(name: name, x_size: x_size, y_size: y_size, comment: description, image: image)
+        NotificationCenter.default.post(
+            name: Notification.Name("ArtWorks"),
+            object: nil,
+            userInfo: [ "artWorksName": name ])
     }
     
     func continueCapture() {

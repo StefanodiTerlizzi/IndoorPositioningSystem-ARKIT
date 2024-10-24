@@ -14,6 +14,11 @@
 		7B86046F2AAEE53700DD5A44 /* extensionARWorldMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B86046E2AAEE53700DD5A44 /* extensionARWorldMap.swift */; };
 		7BBB1BC22AB4092A00613D02 /* extensionNotificationName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBB1BC12AB4092A00613D02 /* extensionNotificationName.swift */; };
 		7BC408C22AB006730048F519 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC408C12AB006730048F519 /* Utils.swift */; };
+		84B563952CCA582600F640E6 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B563942CCA582600F640E6 /* CoreDataManager.swift */; };
+		84B563982CCA585600F640E6 /* autoMapping.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 84B563962CCA585600F640E6 /* autoMapping.xcdatamodeld */; };
+		84B5639A2CCA594A00F640E6 /* ExportRoomViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B563992CCA594A00F640E6 /* ExportRoomViewContainer.swift */; };
+		84B5639D2CCA597600F640E6 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 84B5639B2CCA597600F640E6 /* Preview Assets.xcassets */; };
+		84B563A12CCA5C6B00F640E6 /* NavChoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B563A02CCA5C6B00F640E6 /* NavChoice.swift */; };
 		B7034E0B2A59679300A777B6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7034E0A2A59679300A777B6 /* AppDelegate.swift */; };
 		B7034E0D2A59679300A777B6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7034E0C2A59679300A777B6 /* ContentView.swift */; };
 		B7034E112A59679500A777B6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B7034E102A59679500A777B6 /* Assets.xcassets */; };
@@ -36,6 +41,11 @@
 		7B86046E2AAEE53700DD5A44 /* extensionARWorldMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extensionARWorldMap.swift; sourceTree = "<group>"; };
 		7BBB1BC12AB4092A00613D02 /* extensionNotificationName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extensionNotificationName.swift; sourceTree = "<group>"; };
 		7BC408C12AB006730048F519 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		84B563942CCA582600F640E6 /* CoreDataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
+		84B563972CCA585600F640E6 /* autoMapping.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = autoMapping.xcdatamodel; sourceTree = "<group>"; };
+		84B563992CCA594A00F640E6 /* ExportRoomViewContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExportRoomViewContainer.swift; sourceTree = "<group>"; };
+		84B5639B2CCA597600F640E6 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		84B563A02CCA5C6B00F640E6 /* NavChoice.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NavChoice.swift; sourceTree = "<group>"; };
 		B7034E072A59679200A777B6 /* autoMapping.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = autoMapping.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7034E0A2A59679300A777B6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		B7034E0C2A59679300A777B6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -66,11 +76,20 @@
 		3FAEB5542B14DC430064EAD9 /* pages */ = {
 			isa = PBXGroup;
 			children = (
+				84B563A02CCA5C6B00F640E6 /* NavChoice.swift */,
 				3FAEB5552B14DC5A0064EAD9 /* ConvertionLocalGlobal.swift */,
 				3FEC043A2B1A118400021FF8 /* Navigation.swift */,
 				3FA363612B206EC400E95DF2 /* ScanningEnvironment.swift */,
 			);
 			path = pages;
+			sourceTree = "<group>";
+		};
+		84B5639C2CCA597600F640E6 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				84B5639B2CCA597600F640E6 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 		B7034DFE2A59679200A777B6 = {
@@ -92,6 +111,7 @@
 		B7034E092A59679200A777B6 /* autoMapping */ = {
 			isa = PBXGroup;
 			children = (
+				84B5639C2CCA597600F640E6 /* Preview Content */,
 				3FAEB5542B14DC430064EAD9 /* pages */,
 				B727B1432A65AC330062D65A /* Room.usdz */,
 				B780EB922A634D050043D33C /* Info.plist */,
@@ -100,6 +120,7 @@
 				B7034E102A59679500A777B6 /* Assets.xcassets */,
 				B77C5A742A5DE262004A451C /* RoomCaptureViewContainer.swift */,
 				B77C5A762A5DE888004A451C /* ARSCNViewContainer.swift */,
+				84B563992CCA594A00F640E6 /* ExportRoomViewContainer.swift */,
 				B77C5A7D2A5E1BE2004A451C /* SCNViewContainer.swift */,
 				B77C5A782A5DFC53004A451C /* Model.swift */,
 				B77C5A812A5E2959004A451C /* SwiftUIView.swift */,
@@ -109,6 +130,8 @@
 				7BC408C12AB006730048F519 /* Utils.swift */,
 				7BBB1BC12AB4092A00613D02 /* extensionNotificationName.swift */,
 				7B3C0A112AB9876A00162095 /* CMMotionDetector.swift */,
+				84B563942CCA582600F640E6 /* CoreDataManager.swift */,
+				84B563962CCA585600F640E6 /* autoMapping.xcdatamodeld */,
 			);
 			path = autoMapping;
 			sourceTree = "<group>";
@@ -144,7 +167,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1430;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 1530;
 				TargetAttributes = {
 					B7034E062A59679200A777B6 = {
 						CreatedOnToolsVersion = 14.3.1;
@@ -178,6 +201,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B727B1442A65AC330062D65A /* Room.usdz in Resources */,
+				84B5639D2CCA597600F640E6 /* Preview Assets.xcassets in Resources */,
 				B7034E112A59679500A777B6 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -191,10 +215,13 @@
 			files = (
 				B77C5A792A5DFC53004A451C /* Model.swift in Sources */,
 				3FAEB5562B14DC5A0064EAD9 /* ConvertionLocalGlobal.swift in Sources */,
+				84B563A12CCA5C6B00F640E6 /* NavChoice.swift in Sources */,
 				B77C5A822A5E2959004A451C /* SwiftUIView.swift in Sources */,
 				B77C5A7E2A5E1BE2004A451C /* SCNViewContainer.swift in Sources */,
+				84B563952CCA582600F640E6 /* CoreDataManager.swift in Sources */,
 				B77C5A772A5DE888004A451C /* ARSCNViewContainer.swift in Sources */,
 				B7034E0D2A59679300A777B6 /* ContentView.swift in Sources */,
+				84B563982CCA585600F640E6 /* autoMapping.xcdatamodeld in Sources */,
 				B7B4D6212A629EC00091C052 /* Origin.swift in Sources */,
 				7B86046F2AAEE53700DD5A44 /* extensionARWorldMap.swift in Sources */,
 				7BC408C22AB006730048F519 /* Utils.swift in Sources */,
@@ -203,6 +230,7 @@
 				B77C5A752A5DE262004A451C /* RoomCaptureViewContainer.swift in Sources */,
 				B77C5A842A5E296C004A451C /* VisualizeRoomViewContainer.swift in Sources */,
 				3FEC043B2B1A118400021FF8 /* Navigation.swift in Sources */,
+				84B5639A2CCA594A00F640E6 /* ExportRoomViewContainer.swift in Sources */,
 				7BBB1BC22AB4092A00613D02 /* extensionNotificationName.swift in Sources */,
 				7B3C0A122AB9876A00162095 /* CMMotionDetector.swift in Sources */,
 			);
@@ -247,6 +275,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -308,6 +337,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -439,6 +469,20 @@
 			productName = ComplexModule;
 		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin XCVersionGroup section */
+		84B563962CCA585600F640E6 /* autoMapping.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				84B563972CCA585600F640E6 /* autoMapping.xcdatamodel */,
+			);
+			currentVersion = 84B563972CCA585600F640E6 /* autoMapping.xcdatamodel */;
+			name = autoMapping.xcdatamodeld;
+			path = "/Users/admin/Documents/IndoorPositioningSystem-ARKIT/autoMapping/autoMapping/autoMapping.xcdatamodeld";
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = B7034DFF2A59679200A777B6 /* Project object */;
 }

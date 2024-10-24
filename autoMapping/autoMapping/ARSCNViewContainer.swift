@@ -134,12 +134,17 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
     // MARK: - ARSCNViewDelegate
     
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        guard let imageAnchor = anchor as? ARImageAnchor else{return}
+        let referenceImage = imageAnchor.referenceImage
+        let referenceImageName = referenceImage.name
+        
+        NotificationCenter.default.post(
+            name: Notification.Name("ArtWorkFound"),
+            object: nil,
+            userInfo: [ "artWorkName": referenceImageName ?? "N/A" ])
+        
         
         DispatchQueue.main.async{
-            
-            guard let imageAnchor = anchor as? ARImageAnchor else{return}
-            let referenceImage = imageAnchor.referenceImage
-            let refeenceImageName = referenceImage.name
             
             let position = SCNVector3(
                 x: imageAnchor.transform.columns.3.x,
@@ -158,7 +163,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             
             boxNode.transform = orientation
             boxNode.position = position
-            boxNode.name = refeenceImageName
+            boxNode.name = referenceImageName
             
             node.addChildNode(boxNode)
             

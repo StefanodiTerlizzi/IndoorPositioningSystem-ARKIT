@@ -15,12 +15,14 @@ struct ScanningEnvironment: View {
     @State private var messagesFromWorldMap: String = ""
     @State private var worlMapNewFeatures: Int = 0
     @State private var worldMapCounter: Int = 0
+    @State private var worldImageFind: [String] = []
+    @State private var worldImageToFind: [String] = []
     @State var isScanningRoom = true
     
     @State private var showMapNameAlert = false
     @State private var cont = 1
     
-    var roomcaptureView = RoomCaptureViewContainer()
+    var roomCaptureView = RoomCaptureViewContainer()
     
     var visualizeRoom = VisualizeRoomViewContainer()
     var exportRoom = SCNViewContainer()
@@ -80,6 +82,15 @@ struct ScanningEnvironment: View {
     @State var selectedNode: SCNNode?
     
     
+    func updateImageFindList(with name: String){
+        worldImageFind.append(name)
+    }
+    func updateImageToFindList(with name: String){
+        worldImageToFind.append(name)
+    }
+    
+    
+    
     var body: some View {
         VStack {
             Text("SCANNING ROOM").bold().font(.largeTitle)
@@ -115,9 +126,10 @@ struct ScanningEnvironment: View {
                             })
                     
                 }
+                
                 Button("RESTART"){
                     isScanningRoom = true
-                    roomcaptureView.redoCapture()
+                    roomCaptureView.redoCapture()
                 }.buttonStyle(.bordered)
                     .frame(width: 150, height: 70)
                     .background(Color(red: 255/255, green: 30/255, blue: 30/255))
@@ -127,9 +139,23 @@ struct ScanningEnvironment: View {
                 
             }
             
+            HStack{
+                Text("ArtWork:")
+                ScrollView{
+                    ForEach(worldImageToFind, id:\.self){ val in
+                        Text(val).font(.footnote)
+                    }
+                }.frame(maxHeight:30)
+                Text("ArtWork Found:")
+                ScrollView{
+                    ForEach(worldImageFind, id:\.self){ val in
+                        Text(val).font(.footnote)
+                    }
+                }.frame(maxHeight:30)
+            }
             Text(message).bold().foregroundColor(.green).font(.title2)
             
-            roomcaptureView
+            roomCaptureView
                 .border(Color.white)
                 .cornerRadius(6)
                 .padding()
@@ -142,7 +168,7 @@ struct ScanningEnvironment: View {
                     Button("SAVE ROOM"){
                         isScanningRoom = false
                         let finalMapName = "\(mapName)\(cont)"
-                        roomcaptureView.stopCapture( pauseARSession: false,mapName: finalMapName)
+                        roomCaptureView.stopCapture( pauseARSession: false,mapName: finalMapName)
                         cont += 1
                         isScanningRoom = true
                         showMergeButton = true
@@ -160,7 +186,7 @@ struct ScanningEnvironment: View {
                 if(showContinueButton){
                     Button("SCAN \(cont)° ROOM"){
                         isScanningRoom = true
-                        roomcaptureView.continueCapture()
+                        roomCaptureView.continueCapture()
                         
                         showMergeButton = false
                         showContinueButton = false
@@ -177,7 +203,7 @@ struct ScanningEnvironment: View {
                 if showMergeButton{
                     Button("CREATE GLOBAL MAP"){
                         isScanningRoom = false
-                        roomcaptureView.stopCapture(pauseARSession: true, mapName: self.mapName)
+                        roomCaptureView.stopCapture(pauseARSession: true, mapName: self.mapName)
                         convertMaptoJSON()
                         
                         if #available(iOS 17.0, *) {
@@ -222,7 +248,7 @@ struct ScanningEnvironment: View {
                             print("Error loading image: \(error)")
                         }}
                     }
-                }
+                }.ignoresSafeArea()
             if let selectedImage=selectedImage{
                 Image(uiImage: selectedImage)
                     .resizable()
@@ -235,12 +261,13 @@ struct ScanningEnvironment: View {
             TextField("Image width:", text: $imageWidth).keyboardType(.decimalPad)
             TextField("Image height:", text: $imageHeight).keyboardType(.decimalPad)
             Button("Load Image"){
-                roomcaptureView.loadImages(
+                roomCaptureView.loadImages(
                     image: selectedImage!,
                     name:imageName,
                     description:imageDescription,
                     width:imageWidth,
                     height:imageHeight)
+                
             }
             Button("OK") {
                 print("Images saved: " + imageName)
@@ -256,6 +283,20 @@ struct ScanningEnvironment: View {
                 
                 self.message = "Map: \(mapName), CREATED!"
             }
+        }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorkFound"))) { notification in
+            if let userInfo = notification.userInfo,
+               let artWorkName = userInfo["artWorkName"] as? String {
+                self.updateImageFindList(with: artWorkName)
+                print("UI upgrade with new art work found")
+            }
+            
+        }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorks"))) { notification in
+            if let userInfo = notification.userInfo,
+               let artWorkName = userInfo["artWorksName"] as? String {
+                self.updateImageToFindList(with: artWorkName)
+                print("UI upgrade with new art work")
+            }
+            
         }
     }
 }
