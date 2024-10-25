@@ -64,6 +64,10 @@ struct SCNViewContainer: UIViewRepresentable {
         drawContent(borders: borders)
         setMassCenter()
         setCamera()
+        let tapGestureRecognizer = UITapGestureRecognizer(
+            target: self,
+            action: #selector(gestureDelegate.handleTap(gestureRecognize:)))
+        scnView.addGestureRecognizer(tapGestureRecognizer)
         NotificationCenter
             .default
             .post(name: .genericMessage, object: "map loaded correctly")
@@ -78,6 +82,10 @@ struct SCNViewContainer: UIViewRepresentable {
         
         setMassCenter()
         setCamera()
+        let tapGestureRecognizer = UITapGestureRecognizer(
+            target: self,
+            action: #selector(gestureDelegate.handleTap(gestureRecognize:)))
+        scnView.addGestureRecognizer(tapGestureRecognizer)
         NotificationCenter
             .default
             .post(name: .genericMessage, 
