@@ -2,7 +2,7 @@
 //  Navigation.swift
 //  autoMapping
 //
-//  Created by student on 01/12/23.
+//  Created by student on 25/10/24.
 
 import SwiftUI
 import simd
@@ -177,7 +177,7 @@ struct Navigation: View {
 //        navMessage = "STOP"
 //        switchingList.append(.now)
 //        indexMapLoaded = indexToLoad!
-//         
+//
 //        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
 //            switching = false
 //            navMessage = "CONTINUE"
