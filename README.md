@@ -1,10 +1,10 @@
 # IMPLEMENTATION
-## The aim of this project is to create an Indoor Positioning System. In particular, the app consists of three main functionalities:
+## The aim of this project is to create an Indoor Positioning System. In particular, the app consists of four main functionalities:
 - ### Scanning the environment:
     This function provides a simple way to scan the environment. Thanks to the RoomPlan API exposed by Apple, it is possible to create a 3D mesh and save it in a file.usdz and an ARWorldMap file that contains the information about all the feature points captured during the scanning. 
     
     These files are saved under the directories “Maps” and “MapsUSDZ”. Thanks to this couple of files, it is possible to load a new ARSession initialized by the ARWorldMap. The global map is generated in the same way and moved under the “ExportCombined” folder.
-
+  
 - ### Maps alignment:
     Given two 3D meshes, “LocalMap” and “GlobalMap”, you have to choose three couples of points [(PL1, PG1), …]. PL1 is a point in the “LocalMap” and PG1 is the same point in the “GlobalMap”.
     
@@ -21,7 +21,9 @@
     - translation: Is the translation matrix calculated to project a POS from the local space to the global space.
     - R_Y: Describes the rotation to project the orientation of a POS from the local space to the global space. (This is calculated as the difference between the Y rotation of PL1 and the Y rotation of PG1)
     - diffMatrix: Describes how precise the result was. In particular, you can read this as follows: Given a POS in the local space, and applied the transformation and rotation, how close is it to the correct projection on the global space? Where a zero matrix means that the projection is perfect.
-- Navigation: In this section, it is possible to navigate by loading an ARSession. In particular, the first time you have to choose one of the local maps previously scanned (e.g., “Room1”).
+
+- ### Navigation:
+  In this section, it is possible to navigate by loading an ARSession. In particular, the first time you have to choose one of the local maps previously scanned (e.g., “Room1”).
     
     At this moment, you are in “relocalizing” status, and your position is at [0,0,0]. After that, you can start to walk in the environment, and hopefully soon, the system recognizes some points and moves to “normal” status and corrects your position.
     
@@ -33,6 +35,9 @@
     
     The implementation of the recognition of the local zones limit is done by calculating the bounding boxes (BB) of each local zone and projecting the 4 BB descriptor point of each of them to the global space reference system. During all the navigation, you can see your position in the “local space” and in the “global space” projected by the previously calculated transformations.
 
+- ### Detecting work of Art:
+  Given some image and description of the works of art, passed before thr scanning phase, during the scan it detects the images passed as ARReferenceImage and inserts in the map in the correct pisition an information marker related to the recognised image. While during the Navigation phase, the recognised images are shown as dots that by clicking on them gives us information about the corresponding work.
+
 # TODO
 - ### Investigate the generalization problem of calculating “R_Y”.
     Now it is a really naive way to do it and is not robust with all environment scans. A new system can take the rotation directly from the Ransac alignment matrix, probably.
@@ -40,3 +45,7 @@
     This system is based on the RoomPlanAPI API and 3D meshes created from that. The first thing to do is to try to create a “global” planimetry without this API and connect the “locals ARWorldMap” through 3 points inserted in the 2 systems.
 - ### bounding boxes to Covnex Hull
     The bounding boxes calculated as that do not allow a perfect zone separation. It is more useful to take the convex hull generated starting by all the feature points extracted by the local ARWorldMap
+- ### coreData
+    This class provides to support the management of the images to detecting and their information in a database
+- ### ARReferenceImage
+  This class support the 2D image that you want ARKit to detect in a physical environment
