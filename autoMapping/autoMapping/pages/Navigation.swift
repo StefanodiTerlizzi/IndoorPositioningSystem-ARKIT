@@ -42,6 +42,8 @@ struct Navigation: View {
     
     @State var shouldSwitchMap = false
     
+    @State private var worldImageFind: [String] = []
+    
     var rotoTrasl: [DictToRototraslation]?
     
     //    func extractFileName(from path: String) -> String {
@@ -158,13 +160,24 @@ struct Navigation: View {
             return fileNameWithoutExtension
         }
     }
+    
+    func extractArtWorksName(mapName:String) -> [String] {
+        var artWorks: [String] = []
+        let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapName)
+        
+        for item in items {
+            artWorks.append(item.name ?? "Unknown Art Work")
+        }
+        
+        return artWorks
+    }
 //    AUTOMATIC SWITCH
 //    func executeMapSwitching(){
 //        switching = true
 //        navMessage = "STOP"
 //        switchingList.append(.now)
 //        indexMapLoaded = indexToLoad!
-//        
+//         
 //        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
 //            switching = false
 //            navMessage = "CONTINUE"
@@ -242,6 +255,7 @@ struct Navigation: View {
                         
                         //calculate GLOBAL MAP NAME
                         extractedWord = extractWordFromURL(url: l[indexMapLoaded])
+                        worldImageFind = extractArtWorksName(mapName: l[indexMapLoaded].lastPathComponent)
                         print(extractedWord)
                         
                         worldTracking.loadWorldMap(worldMap: map, l[indexMapLoaded].lastPathComponent)
@@ -253,7 +267,16 @@ struct Navigation: View {
                         singleView.loadRoomMaps(name: l[indexMapLoaded].lastPathComponent, borders: true)
                     }
                 })
-                
+                if indexMapLoaded != -1 {
+                    if !worldImageFind.isEmpty {
+                        Text("ArtWork Found:")
+                        ScrollView{
+                            ForEach(worldImageFind, id:\.self){ val in
+                                Text(val).font(.footnote)
+                            }
+                        }.frame(maxHeight:30)
+                    }
+                }
                 
                 /*HStack{
                  Button("<"){

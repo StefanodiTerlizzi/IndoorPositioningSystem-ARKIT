@@ -25,6 +25,8 @@ struct SCNViewContainer: UIViewRepresentable {
     
     var delegate = RenderDelegate()
     
+    var gestureDelegate = ARSCNDelegate()
+    
     var dimension = SCNVector3()
     
     var rotoTraslation: [DictToRototraslation] = []
@@ -34,6 +36,10 @@ struct SCNViewContainer: UIViewRepresentable {
     init() {
         print("init SCNViewContainer")
         massCenter.worldPosition = SCNVector3(0, 0, 0)
+        let tapGestureRecognizer = UITapGestureRecognizer(
+            target: self,
+            action: #selector(gestureDelegate.handleTap(gestureRecognize:)))
+        scnView.addGestureRecognizer(tapGestureRecognizer)
     }
     
     func RotoActivePlusMinus(_ plus: Bool) {

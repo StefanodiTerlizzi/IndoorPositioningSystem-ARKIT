@@ -4,6 +4,8 @@
         <attribute name="comment" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageData" optional="YES" attributeType="Binary"/>
+        <attribute name="itemColor" optional="YES" attributeType="String"/>
+        <attribute name="mapName" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="x_size" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="y_size" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>

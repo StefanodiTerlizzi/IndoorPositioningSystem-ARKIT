@@ -36,6 +36,8 @@ struct ScanningEnvironment: View {
     @State private var showingAlert = false
     @State private var showFeedbackExport = false
     @State private var dimensions: [String] = []
+    @State private var showError: Bool = false
+    @State private var showError2: Bool = false
     
     @State var signDoor = false
     
@@ -81,156 +83,253 @@ struct ScanningEnvironment: View {
     
     @State var selectedNode: SCNNode?
     
-    
+    func clearParameter(){
+        selectedImage = nil
+        imageName = ""
+        imageDescription = ""
+        imageWidth = ""
+        imageHeight = ""
+    }
     func updateImageFindList(with name: String){
         worldImageFind.append(name)
     }
     func updateImageToFindList(with name: String){
         worldImageToFind.append(name)
     }
+    func validateFields() {
+        showError2 = (selectedImage == nil) || imageName.isEmpty || imageDescription.isEmpty || imageWidth.isEmpty || imageHeight.isEmpty
+        
+        if showError2==false {
+            roomCaptureView.loadImages(
+                mapName:mapName,
+                image: selectedImage!,
+                name:imageName,
+                description:imageDescription,
+                width:imageWidth,
+                height:imageHeight)
+            clearParameter()
+            showAlertForImages = true
+        } else { showAlertForImages = true }
+    }
+    func validateParameter() {
+        showError = mapName.isEmpty
+        
+        if showError==false {
+            print("Nome mappa Salvato: " + mapName)
+            showAlertForMapName = false
+            showAlertForImages = true
+        } else { showAlertForMapName = true }
+    }
+    func closeImageAlert() {
+        clearParameter()
+        showAlertForImages = false
+    }
     
     
     
     var body: some View {
-        VStack {
-            Text("SCANNING ROOM").bold().font(.largeTitle)
-            HStack{
-                VStack{
-                    
-                    Text("WorldMapCounter: \(worldMapCounter)")
-                        .onReceive(NotificationCenter
-                            .default
-                            .publisher(for: Notification.Name.worldMapCounter),
-                                   perform: {coutner in
-                            if let counter = coutner.object as? Int {worldMapCounter = counter}
-                        })
-                    
-                    Text(messagesFromWorldMap)
-                        .onReceive(NotificationCenter
-                            .default
-                            .publisher(for: Notification.Name.worldMapMessage), perform: {message in
-                                if let worldMap = message.object as? ARWorldMap {
-                                    messagesFromWorldMap = """
-                                    mapDimension in m2: \(worldMap.extent.x * worldMap.extent.z)\n
-                                    anchors: \(worldMap.anchors.count)\n
-                                    features:\(worldMap.rawFeaturePoints.identifiers.count)
-                                    """
-                                }
+        ZStack{
+            VStack {
+                Text("SCANNING ROOM").bold().font(.largeTitle)
+                HStack{
+                    VStack{
+                        
+                        Text("WorldMapCounter: \(worldMapCounter)")
+                            .onReceive(NotificationCenter
+                                .default
+                                .publisher(for: Notification.Name.worldMapCounter),
+                                       perform: {coutner in
+                                if let counter = coutner.object as? Int {worldMapCounter = counter}
                             })
+                        
+                        Text(messagesFromWorldMap)
+                            .onReceive(NotificationCenter
+                                .default
+                                .publisher(for: Notification.Name.worldMapMessage), perform: {message in
+                                    if let worldMap = message.object as? ARWorldMap {
+                                        messagesFromWorldMap = """
+                                        mapDimension in m2: \(worldMap.extent.x * worldMap.extent.z)\n
+                                        anchors: \(worldMap.anchors.count)\n
+                                        features:\(worldMap.rawFeaturePoints.identifiers.count)
+                                        """
+                                    }
+                                })
+                        
+                        Text("new features: \(worlMapNewFeatures)")
+                            .onReceive(NotificationCenter
+                                .default
+                                .publisher(for: .worlMapNewFeatures), perform: {message in
+                                    if let n = message.object as? Int {worlMapNewFeatures = n}
+                                })
+                        
+                    }
                     
-                    Text("new features: \(worlMapNewFeatures)")
-                        .onReceive(NotificationCenter
-                            .default
-                            .publisher(for: .worlMapNewFeatures), perform: {message in
-                                if let n = message.object as? Int {worlMapNewFeatures = n}
-                            })
+                    Button("RESTART"){
+                        isScanningRoom = true
+                        roomCaptureView.redoCapture()
+                    }.buttonStyle(.bordered)
+                        .frame(width: 150, height: 70)
+                        .background(Color(red: 255/255, green: 30/255, blue: 30/255))
+                        .cornerRadius(6)
+                        .bold()
+                        .padding(.leading)
                     
                 }
                 
-                Button("RESTART"){
-                    isScanningRoom = true
-                    roomCaptureView.redoCapture()
-                }.buttonStyle(.bordered)
-                    .frame(width: 150, height: 70)
-                    .background(Color(red: 255/255, green: 30/255, blue: 30/255))
+                HStack{
+                    if !worldImageToFind.isEmpty {
+                        Text("ArtWork:")
+                        ScrollView{
+                            ForEach(worldImageToFind, id:\.self){ val in
+                                Text(val).font(.footnote)
+                            }
+                        }.frame(maxHeight:30)
+                    }
+                    
+                    if !worldImageFind.isEmpty {
+                        Text("ArtWork Found:")
+                        ScrollView{
+                            ForEach(worldImageFind, id:\.self){ val in
+                                Text(val).font(.footnote)
+                            }
+                        }.frame(maxHeight:30)
+                    }
+                }
+                Text(message).bold().foregroundColor(.green).font(.title2)
+                
+                roomCaptureView
+                    .border(Color.white)
                     .cornerRadius(6)
-                    .bold()
-                    .padding(.leading)
-                
-            }
-            
-            HStack{
-                Text("ArtWork:")
-                ScrollView{
-                    ForEach(worldImageToFind, id:\.self){ val in
-                        Text(val).font(.footnote)
-                    }
-                }.frame(maxHeight:30)
-                Text("ArtWork Found:")
-                ScrollView{
-                    ForEach(worldImageFind, id:\.self){ val in
-                        Text(val).font(.footnote)
-                    }
-                }.frame(maxHeight:30)
-            }
-            Text(message).bold().foregroundColor(.green).font(.title2)
-            
-            roomCaptureView
-                .border(Color.white)
-                .cornerRadius(6)
-                .padding()
-                .shadow(color: Color.white, radius: 20)
-            
-            
-            HStack {
-                
-                if showSaveButton{
-                    Button("SAVE ROOM"){
-                        isScanningRoom = false
-                        let finalMapName = "\(mapName)\(cont)"
-                        roomCaptureView.stopCapture( pauseARSession: false,mapName: finalMapName)
-                        cont += 1
-                        isScanningRoom = true
-                        showMergeButton = true
-                        showContinueButton = true
-                        showSaveButton = false
-                        
-                        
-                    }.buttonStyle(.bordered)
-                        .background(Color(red: 255/255, green: 235/255, blue: 205/255))
-                        .cornerRadius(6)
-                        .bold()
-                }
+                    .padding()
+                    .shadow(color: Color.white, radius: 20)
                 
                 
-                if(showContinueButton){
-                    Button("SCAN \(cont)° ROOM"){
-                        isScanningRoom = true
-                        roomCaptureView.continueCapture()
-                        
-                        showMergeButton = false
-                        showContinueButton = false
-                        showSaveButton = true
-                        
-                    }.buttonStyle(.bordered)
-                        .background(Color(red: 255/255, green: 235/255, blue: 205/255))
-                        .cornerRadius(6)
-                        .bold()
-                        
-                }
-                
-                
-                if showMergeButton{
-                    Button("CREATE GLOBAL MAP"){
-                        isScanningRoom = false
-                        roomCaptureView.stopCapture(pauseARSession: true, mapName: self.mapName)
-                        convertMaptoJSON()
-                        
-                        if #available(iOS 17.0, *) {
+                HStack {
+                    
+                    if showSaveButton{
+                        Button("SAVE ROOM"){
+                            isScanningRoom = false
+                            let finalMapName = "\(mapName)\(cont)"
+                            roomCaptureView.stopCapture( pauseARSession: false,mapName: finalMapName)
+                            cont += 1
+                            isScanningRoom = true
+                            showMergeButton = true
+                            showContinueButton = true
+                            showSaveButton = false
                             
-                            mergeSelectedRooms(mapName: self.mapName)
                             
-                        } else {
-                            print("Error: you have not iOS 17.0")
-                        }
-                    }.buttonStyle(.bordered).background(Color(red: 240/255, green: 151/255, blue: 45/255)).cornerRadius(6).bold()
+                        }.buttonStyle(.bordered)
+                            .background(Color(red: 255/255, green: 235/255, blue: 205/255))
+                            .cornerRadius(6)
+                            .bold()
+                    }
+                    
+                    
+                    if(showContinueButton){
+                        Button("SCAN \(cont)° ROOM"){
+                            isScanningRoom = true
+                            roomCaptureView.continueCapture()
+                            
+                            showMergeButton = false
+                            showContinueButton = false
+                            showSaveButton = true
+                            
+                        }.buttonStyle(.bordered)
+                            .background(Color(red: 255/255, green: 235/255, blue: 205/255))
+                            .cornerRadius(6)
+                            .bold()
+                            
+                    }
+                    
+                    
+                    if showMergeButton{
+                        Button("CREATE GLOBAL MAP"){
+                            isScanningRoom = false
+                            roomCaptureView.stopCapture(pauseARSession: true, mapName: self.mapName)
+                            convertMaptoJSON()
+                            
+                            if #available(iOS 17.0, *) {
+                                
+                                mergeSelectedRooms(mapName: self.mapName)
+                                
+                            } else {
+                                print("Error: you have not iOS 17.0")
+                            }
+                        }.buttonStyle(.bordered).background(Color(red: 240/255, green: 151/255, blue: 45/255)).cornerRadius(6).bold()
+                        
+                    }
+                    
+                    
                     
                 }
                 
+            }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Color(red: 11/255, green: 121/255, blue: 157/255)).foregroundColor(.white).blur(radius: showAlertForMapName || showAlertForImages ? 3:0)
+            .onAppear {
+                self.showAlertForMapName = true
+            }.onReceive(NotificationCenter.default.publisher(for: .genericMessage)) { notification in
+                if let message = notification.object as? String, message == "finish marging" {
+                    
+                    self.message = "Map: \(mapName), CREATED!"
+                }
+            }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorkFound"))) { notification in
+                if let userInfo = notification.userInfo,
+                   let artWorkName = userInfo["artWorkName"] as? String {
+                    self.updateImageFindList(with: artWorkName)
+                    print("UI upgrade with new art work found")
+                }
+                
+            }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorks"))) { notification in
+                if let userInfo = notification.userInfo,
+                   let artWorkName = userInfo["artWorksName"] as? String {
+                    self.updateImageToFindList(with: artWorkName)
+                    print("UI upgrade with new art work")
+                }
+                   
             }
             
-        }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Color(red: 11/255, green: 121/255, blue: 157/255)).foregroundColor(.white).alert("Write Global Map Name:", isPresented: $showAlertForMapName) {
+            if showAlertForMapName {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                VStack{
+                    AlertForMapName.frame(maxWidth:300).background(Color.white.opacity(0.5)).cornerRadius(12).shadow(radius: 20).padding()
+                }
+            }
             
-            TextField("Map name:", text: $mapName)
-            Button("OK") {
-                print("Nome mappa Salvato: " + mapName)
-                self.showAlertForMapName = false
-                self.showAlertForImages = true
+            if showAlertForImages {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                VStack{
+                    AlertForImages.frame(maxWidth:200).background(Color.white.opacity(0.5)).cornerRadius(12).shadow(radius: 20).padding()
+                }
             }
-            Button("Annulla", role: .cancel) {
-                //presentationMode.wrappedValue.dismiss()
+        }
+    }
+    
+    private var AlertForMapName: some View {
+        VStack(spacing:20){
+            
+            Text("Write Global Map Name:").font(.headline).padding(.top)
+            if showError {
+                Text("Map name is mandatory").foregroundColor(.red).font(.caption)
             }
-        }.alert("Select Images:", isPresented: $showAlertForImages) {
+            TextField("Map name:", text: $mapName).textFieldStyle(RoundedBorderTextFieldStyle()).padding(.horizontal)
+            Divider()
+            VStack{
+                Button(action: {validateParameter()}, label: {
+                    Text("OK")
+                }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
+                Divider()
+                Button("Canc", role: .cancel) {
+                    //presentationMode.wrappedValue.dismiss()
+                }.frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
+            }
+        }.padding()
+    }
+    
+    private var AlertForImages: some View {
+        VStack(spacing:20){
+            Text("Insert Works of Art:").font(.headline).padding(.top)
+            if showError2 {
+                Text("All fields are mandatory").foregroundColor(.red).font(.caption)
+            }
             PhotosPicker(
                 selection: $selectedItem,
                 matching: .images,
@@ -255,57 +354,38 @@ struct ScanningEnvironment: View {
                     .scaledToFit()
                     .frame(width: 200, height: 200)
             }
+            VStack(spacing:0){
+                TextField("Image name:", text: $imageName).padding(.horizontal)
+                Divider()
+                TextField("Image description:", text: $imageDescription).padding(.horizontal)
+                Divider()
+                TextField("Image width:", text: $imageWidth).keyboardType(.decimalPad).padding(.horizontal)
+                Divider()
+                TextField("Image height:", text: $imageHeight).keyboardType(.decimalPad).padding(.horizontal)
+            }.background(Color.white).cornerRadius(12)
             
-            TextField("Image name:", text: $imageName)
-            TextField("Image description:", text: $imageDescription)
-            TextField("Image width:", text: $imageWidth).keyboardType(.decimalPad)
-            TextField("Image height:", text: $imageHeight).keyboardType(.decimalPad)
-            Button("Load Image"){
-                roomCaptureView.loadImages(
-                    image: selectedImage!,
-                    name:imageName,
-                    description:imageDescription,
-                    width:imageWidth,
-                    height:imageHeight)
-                
-            }
-            Button("OK") {
-                print("Images saved: " + imageName)
-            }
-            Button("Reset", role: .cancel) {
-                //presentationMode.wrappedValue.dismiss()
-            }
-        }
-        .onAppear {
-            self.showAlertForMapName = true
-        }.onReceive(NotificationCenter.default.publisher(for: .genericMessage)) { notification in
-            if let message = notification.object as? String, message == "finish marging" {
-                
-                self.message = "Map: \(mapName), CREATED!"
-            }
-        }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorkFound"))) { notification in
-            if let userInfo = notification.userInfo,
-               let artWorkName = userInfo["artWorkName"] as? String {
-                self.updateImageFindList(with: artWorkName)
-                print("UI upgrade with new art work found")
+            Divider()
+            VStack{
+                Button(action: {validateFields()}, label: {
+                    Text("Load Image")
+                }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
+                Divider()
+                Button(action: {closeImageAlert()}, label: {
+                    Text("OK")
+                }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
+                Divider()
+                Button(action: {closeImageAlert()}, label: {
+                    Text("Canc")
+                }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
             }
             
-        }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorks"))) { notification in
-            if let userInfo = notification.userInfo,
-               let artWorkName = userInfo["artWorksName"] as? String {
-                self.updateImageToFindList(with: artWorkName)
-                print("UI upgrade with new art work")
-            }
-            
-        }
+        }.padding()
     }
 }
 
 #Preview {
     ScanningEnvironment()
 }
-
-
 
 
 struct ProfileImage: Transferable{

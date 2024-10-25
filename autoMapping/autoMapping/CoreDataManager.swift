@@ -13,15 +13,17 @@ class CoreDataManager {
         }}
     }
     
-    func saveItem(name: String, x_size: Float, y_size: Float, comment: String, image: UIImage){
+    func saveItem(names: String, mapNames: String, x_sizes: Float, y_sizes: Float, comments: String, images: UIImage, itemColors: UIColor){
         let context = persistentContainer.viewContext
         let newItem = Item(context: context)
         newItem.id = UUID()
-        newItem.name = name
-        newItem.x_size = x_size
-        newItem.y_size = y_size
-        newItem.comment = comment
-        newItem.imageData = image.pngData()
+        newItem.name = names
+        newItem.mapName = mapNames
+        newItem.x_size = x_sizes
+        newItem.y_size = y_sizes
+        newItem.comment = comments
+        newItem.imageData = images.pngData()
+        newItem.itemColor = itemColors.accessibilityName
         
         do {
             try context.save()
@@ -57,6 +59,21 @@ class CoreDataManager {
         }
     }
     
+    func fetchItemByMapName(mapName: String) -> [Item] {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+        
+        fetchRequest.predicate = NSPredicate(format: "mapName == %@", mapName)
+        
+        do {
+            let result = try context.fetch(fetchRequest)
+            return result
+        } catch {
+            print("Error, Item not retrieved: \(error)")
+            return []
+        }
+    }
+    
     func fetchItemByImage(image: UIImage) -> Item? {
         let context = persistentContainer.viewContext
         let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
@@ -71,6 +88,22 @@ class CoreDataManager {
         } catch {
             print("Error, Item not retrieved: \(error)")
             return nil
+        }
+    }
+    
+    func fetchAllItemNames() -> [String] {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+        fetchRequest.propertiesToFetch = ["name"]
+        fetchRequest.resultType = .dictionaryResultType
+        
+        do {
+            let result = try context.fetch(fetchRequest) as! [[String: Any]]
+            let names = result.compactMap { $0["name"] as? String}
+            return names
+        } catch {
+            print("Erroe, names not retrived: \(error)")
+            return []
         }
     }
     

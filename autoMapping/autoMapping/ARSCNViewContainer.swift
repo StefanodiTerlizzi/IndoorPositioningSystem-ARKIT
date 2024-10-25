@@ -38,6 +38,12 @@ struct ARSCNViewContainer: UIViewRepresentable {
     
     func planeDetectorRun() {
         configuration.planeDetection = [/*.horizontal,*/ .vertical]
+        guard let referenceImage = extractReferenceImages() else {
+            print("No image retieved.")
+            return
+        }
+        configuration.detectionImages = referenceImage
+        configuration.maximumNumberOfTrackedImages = referenceImage.count
         sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
         sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin, ARSCNDebugOptions.showFeaturePoints]
     }
@@ -154,7 +160,8 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             let width = referenceImage.physicalSize.width
             let height = referenceImage.physicalSize.height
             let material = SCNMaterial()
-            material.diffuse.contents = UIColor.red
+            let color = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)?.itemColor
+            material.diffuse.contents = UIColor(named: color ?? "red")
             
             let box = SCNBox(width: width, height: height, length: 0.02, chamferRadius: 0)
             box.materials = [material]
@@ -204,7 +211,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
         if let result = hitTestResults.first {
             let tappedNode = result.node
-            if tappedNode.geometry is SCNBox {
+            if tappedNode.geometry is SCNBox && verifyImageName(nameSearch: tappedNode.name ?? "N/A"){
                 showInfoPanel(for: tappedNode)
             }
         }
@@ -248,6 +255,17 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
         
         return view
+    }
+    
+    func verifyImageName(nameSearch: String) -> Bool {
+        var verify: Bool = false
+        let names: [String] = CoreDataManager.shared.fetchAllItemNames()
+        for name in names {
+            if name == nameSearch {
+                verify = true
+            }
+        }
+        return verify
     }
     
     
