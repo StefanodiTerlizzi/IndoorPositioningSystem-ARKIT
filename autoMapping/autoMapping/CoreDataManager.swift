@@ -24,6 +24,7 @@ class CoreDataManager {
         newItem.comment = comments
         newItem.imageData = images.pngData()
         newItem.itemColor = itemColors.accessibilityName
+        newItem.isDetected = false
         
         do {
             try context.save()
@@ -102,8 +103,24 @@ class CoreDataManager {
             let names = result.compactMap { $0["name"] as? String}
             return names
         } catch {
-            print("Erroe, names not retrived: \(error)")
+            print("Error, names not retrived: \(error)")
             return []
+        }
+    }
+    
+    func setIsDetected(forName name: String) {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+        
+        fetchRequest.predicate = NSPredicate(format: "name == %@", name)
+        
+        do {
+            let item = try context.fetch(fetchRequest).first
+            item?.isDetected = true
+            
+            try context.save()
+        } catch {
+            print("Error, item not setted: \(error)")
         }
     }
     

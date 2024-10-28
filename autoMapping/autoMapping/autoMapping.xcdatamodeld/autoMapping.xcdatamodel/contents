@@ -4,6 +4,7 @@
         <attribute name="comment" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="imageData" optional="YES" attributeType="Binary"/>
+        <attribute name="isDetected" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="itemColor" optional="YES" attributeType="String"/>
         <attribute name="mapName" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>

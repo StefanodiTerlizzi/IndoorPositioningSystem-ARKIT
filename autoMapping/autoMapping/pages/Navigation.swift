@@ -42,7 +42,7 @@ struct Navigation: View {
     
     @State var shouldSwitchMap = false
     
-    @State private var worldImageFind: [String] = []
+    @State private var worldImageFind: [Item] = []
     
     var rotoTrasl: [DictToRototraslation]?
     
@@ -161,12 +161,14 @@ struct Navigation: View {
         }
     }
     
-    func extractArtWorksName(mapName:String) -> [String] {
-        var artWorks: [String] = []
+    func extractArtWorksName(mapName:String) -> [Item] {
+        var artWorks: [Item] = []
         let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapName)
         
         for item in items {
-            artWorks.append(item.name ?? "Unknown Art Work")
+            if item.isDetected == true{
+                artWorks.append(item)
+            }
         }
         
         return artWorks
@@ -272,7 +274,7 @@ struct Navigation: View {
                         Text("ArtWork Found:")
                         ScrollView{
                             ForEach(worldImageFind, id:\.self){ val in
-                                Text(val).font(.footnote)
+                                Text(val.name ?? "Unknown Image").font(.footnote).foregroundColor(Color(val.itemColor ?? "blue"))
                             }
                         }.frame(maxHeight:30)
                     }

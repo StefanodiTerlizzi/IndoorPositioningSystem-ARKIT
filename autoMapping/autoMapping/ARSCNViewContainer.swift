@@ -152,16 +152,43 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
         DispatchQueue.main.async{
             
+            let transform = imageAnchor.transform
+            
             let position = SCNVector3(
-                x: imageAnchor.transform.columns.3.x,
-                y: imageAnchor.transform.columns.3.y,
-                z: imageAnchor.transform.columns.3.z
+                x: transform.columns.3.x,
+                y: transform.columns.3.y,
+                z: transform.columns.3.z
             )
+            let scaleX = simd_length(simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z))
+            let scaleY = simd_length(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
+            let scaleZ = simd_length(simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))
+            let scale = SCNVector3(scaleX, scaleY, scaleZ)
+            
+            let rotationMatrix = transform.columns
+            let sy = sqrt(rotationMatrix.0.x * rotationMatrix.0.x + rotationMatrix.1.x * rotationMatrix.1.x)
+            let singular = sy < 1e-6
+            let eulerX : Float
+            let eulerY : Float
+            let eulerZ : Float
+            if !singular {
+                eulerX = atan2(rotationMatrix.2.y, rotationMatrix.2.z)
+                eulerY = atan2(-rotationMatrix.2.x, sy)
+                eulerZ = atan2(rotationMatrix.1.x, rotationMatrix.0.x)
+            } else {
+                eulerX = atan2(-rotationMatrix.1.z, rotationMatrix.1.y)
+                eulerY = atan2(-rotationMatrix.2.x, sy)
+                eulerZ = 0
+            }
+            let eulerAngles = SCNVector3(eulerX, eulerY, eulerZ)
+            
             let width = referenceImage.physicalSize.width
             let height = referenceImage.physicalSize.height
             let material = SCNMaterial()
             let color = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)?.itemColor
-            material.diffuse.contents = UIColor(named: color ?? "red")
+            let uiColor = UIColor(named: color ?? "red")?.withAlphaComponent(0.2)
+            material.diffuse.contents = uiColor
+            material.isDoubleSided = true
+            material.blendMode = .alpha
             
             let box = SCNBox(width: width, height: height, length: 0.02, chamferRadius: 0)
             box.materials = [material]
@@ -170,9 +197,13 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             
             boxNode.transform = orientation
             boxNode.position = position
+            boxNode.scale = scale
+            boxNode.eulerAngles = eulerAngles
             boxNode.name = referenceImageName
             
             node.addChildNode(boxNode)
+            
+            CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
             
         }
         /*guard !(anchor is ARPlaneAnchor) else { return }
@@ -222,39 +253,61 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         let panelWidth: CGFloat = 0.3
         let panelHeight: CGFloat = 0.4
         let panel = SCNPlane(width: panelWidth, height: panelHeight)
+        let panelNode = SCNNode(geometry: panel)
         
         let material = SCNMaterial()
         let infoItem: Item? = CoreDataManager.shared.fetchItemByName(name: node.name ?? "Unknown image")
-        let infoView = createInfoView(infoItem: infoItem)
+        let infoView = createInfoView(infoItem: infoItem, parentNode: panelNode)
         material.diffuse.contents = infoView.asImage()
-        let panelNode = SCNNode(geometry: panel)
+        panel.materials = [material]
+        
+        panelNode.geometry = panel
         panelNode.position = SCNVector3(position.x, position.y + 0.3, position.z)
+        panelNode.name = "infoPanel"
+        
+        node.addChildNode(panelNode)
         
     }
     
-    func createInfoView(infoItem: Item?) -> UIView{
+    func createInfoView(infoItem: Item?, parentNode: SCNNode) -> UIView{
         let view = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
         view.backgroundColor = UIColor.white.withAlphaComponent(0.8)
         
-        let nameLabel = UILabel(frame: CGRect(x: 10, y: 10, width: 280, height: 20))
+        let nameLabel = UILabel(frame: CGRect(x: 10, y: 40, width: 280, height: 20))
         nameLabel.text = "Work Name: \(String(describing: infoItem?.name))"
         view.addSubview(nameLabel)
         
-        let descriptionLabel = UILabel(frame: CGRect(x: 10, y: 40, width: 280, height: 40))
+        let descriptionLabel = UILabel(frame: CGRect(x: 10, y: 70, width: 280, height: 40))
         descriptionLabel.text = "Description: \(String(describing: infoItem?.comment))"
         view.addSubview(descriptionLabel)
         
-        let imageView = UIImageView(frame: CGRect(x: 10, y: 90, width: 100, height: 100))
+        let imageView = UIImageView(frame: CGRect(x: 10, y: 120, width: 100, height: 100))
         if let imageData = infoItem?.imageData, let uiImage = UIImage(data: imageData){
             imageView.image = uiImage
         }
         view.addSubview(imageView)
         
-        let dimensionLabel = UILabel(frame: CGRect(x: 10, y: 200, width: 280, height: 20))
+        let dimensionLabel = UILabel(frame: CGRect(x: 10, y: 230, width: 280, height: 20))
         dimensionLabel.text = "Dimension: \(String(describing: infoItem?.x_size)) x \(String(describing: infoItem?.y_size))."
+        view.addSubview(dimensionLabel)
+        
+        let closeButton = UIButton(frame: CGRect(x:10, y: 10, width: 20, height: 20))
+        closeButton.setTitle("X", for: .normal)
+        closeButton.setTitleColor(.red, for: .normal)
+        closeButton.accessibilityHint = parentNode.name
+        closeButton.addTarget(self, action: #selector(closeInfoPanel(_:)), for: .touchUpInside)
+        view.addSubview(closeButton)
         
         
         return view
+    }
+    
+    @objc func closeInfoPanel(_ sender: UIButton) {
+        if let panelName = sender.accessibilityHint,
+           let panelNode = sceneView?.scene.rootNode.childNode(withName: panelName, recursively: true) {
+            panelNode.removeFromParentNode()
+        }
+        
     }
     
     func verifyImageName(nameSearch: String) -> Bool {

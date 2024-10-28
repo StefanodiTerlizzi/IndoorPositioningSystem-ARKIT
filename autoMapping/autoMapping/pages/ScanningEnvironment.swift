@@ -126,7 +126,6 @@ struct ScanningEnvironment: View {
     }
     
     
-    
     var body: some View {
         ZStack{
             VStack {
