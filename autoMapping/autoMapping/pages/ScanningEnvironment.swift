@@ -376,9 +376,9 @@ struct ScanningEnvironment: View {
                 Divider()
                 TextField("Image description:", text: $imageDescription).padding(.horizontal)
                 Divider()
-                TextField("Image width:", text: $imageWidth).keyboardType(.decimalPad).padding(.horizontal)
+                TextField("Image width in meters:", text: $imageWidth).keyboardType(.decimalPad).padding(.horizontal)
                 Divider()
-                TextField("Image height:", text: $imageHeight).keyboardType(.decimalPad).padding(.horizontal)
+                TextField("Image height in meters:", text: $imageHeight).keyboardType(.decimalPad).padding(.horizontal)
             }.background(Color.white).cornerRadius(12)
             
             Divider()
