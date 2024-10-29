@@ -1,3 +1,10 @@
+//
+//  CoreDataManager.swift -> auotoMapping.xcdatamodel
+//  autoMapping
+//
+//  Created by Michele Attilio Iodice on 22/10/24.
+//
+
 import CoreData
 import UIKit
 

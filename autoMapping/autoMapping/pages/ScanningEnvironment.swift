@@ -2,7 +2,8 @@
 //  ScanningEnvironment.swift
 //  autoMapping
 //
-//  Created by student on 24/10/24.
+//  Created by Stefano di Terlizzi on 11/07/23.
+//  Upgraded by Michel Attilio Iodice on 22/10/24.
 //
 
 import SwiftUI
