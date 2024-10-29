@@ -36,7 +36,9 @@
     The implementation of the recognition of the local zones limit is done by calculating the bounding boxes (BB) of each local zone and projecting the 4 BB descriptor point of each of them to the global space reference system. During all the navigation, you can see your position in the “local space” and in the “global space” projected by the previously calculated transformations.
 
 - ### Detecting work of Art:
-  Given some image and description of the works of art, passed before thr scanning phase, during the scan it detects the images passed as ARReferenceImage and inserts in the map in the correct pisition an information marker related to the recognised image. While during the Navigation phase, the recognised images are shown as dots that by clicking on them gives us information about the corresponding work.
+  Given some image and description of the works of art passed before the scanning phase, during the scan the system detect the images passed as "ARReferenceImage" and inserts it in the "LocalMap" in the correct pisition an information marker related to the recognised image.
+
+  While, during the Navigation phase, the recognised images are shown as dots that by clicking on them gives us information about the corresponding work.
 
 # TODO
 - ### Investigate the generalization problem of calculating “R_Y”.
@@ -46,6 +48,6 @@
 - ### bounding boxes to Covnex Hull
     The bounding boxes calculated as that do not allow a perfect zone separation. It is more useful to take the convex hull generated starting by all the feature points extracted by the local ARWorldMap
 - ### coreData
-    This class provides to support the management of the images to detecting and their information in a database
+    This class provides to support the management of images to detecting and their information in a database
 - ### ARReferenceImage
   This class support the 2D image that you want ARKit to detect in a physical environment
