@@ -277,17 +277,21 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         nameLabel.text = "Work Name: \(String(describing: infoItem?.name))"
         view.addSubview(nameLabel)
         
-        let descriptionLabel = UILabel(frame: CGRect(x: 10, y: 70, width: 280, height: 40))
+        let authorLabel = UILabel(frame: CGRect(x: 10, y: 70, width: 280, height: 20))
+        authorLabel.text = "Author: \(String(describing: infoItem?.author))"
+        view.addSubview(authorLabel)
+        
+        let descriptionLabel = UILabel(frame: CGRect(x: 10, y: 100, width: 280, height: 40))
         descriptionLabel.text = "Description: \(String(describing: infoItem?.comment))"
         view.addSubview(descriptionLabel)
         
-        let imageView = UIImageView(frame: CGRect(x: 10, y: 120, width: 100, height: 100))
+        let imageView = UIImageView(frame: CGRect(x: 10, y: 150, width: 100, height: 100))
         if let imageData = infoItem?.imageData, let uiImage = UIImage(data: imageData){
             imageView.image = uiImage
         }
         view.addSubview(imageView)
         
-        let dimensionLabel = UILabel(frame: CGRect(x: 10, y: 230, width: 280, height: 20))
+        let dimensionLabel = UILabel(frame: CGRect(x: 10, y: 260, width: 280, height: 20))
         dimensionLabel.text = "Dimension: \(String(describing: infoItem?.x_size)) x \(String(describing: infoItem?.y_size))."
         view.addSubview(dimensionLabel)
         

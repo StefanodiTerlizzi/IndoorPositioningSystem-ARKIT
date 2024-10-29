@@ -67,11 +67,11 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         }
     }
     
-    func loadImages(mapName: String, image: UIImage, name: String, description: String, width: String, height: String){
+    func loadImages(mapName: String, image: UIImage, name: String, author: String, description: String, width: String, height: String){
         let x_size: Float = Float(width) ?? 0.1
         let y_size: Float = Float(height) ?? 0.1
         let color = UIColor.generateUniqueRandomColor()
-        CoreDataManager.shared.saveItem(names: name, mapNames: mapName, x_sizes: x_size, y_sizes: y_size, comments: description, images: image, itemColors: color)
+        CoreDataManager.shared.saveItem(names: name, authors: author, mapNames: mapName, x_sizes: x_size, y_sizes: y_size, comments: description, images: image, itemColors: color)
         NotificationCenter.default.post(
             name: Notification.Name("ArtWorks"),
             object: nil,

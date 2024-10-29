@@ -54,6 +54,7 @@ struct ScanningEnvironment: View {
     
     @State private var mapName: String = ""
     @State private var imageName: String = ""
+    @State private var imageAuthor: String = ""
     @State private var selectedItem: PhotosPickerItem?=nil
     @State var selectedImage: UIImage?=nil
     @State private var imageDescription: String = ""
@@ -83,9 +84,12 @@ struct ScanningEnvironment: View {
     
     @State var selectedNode: SCNNode?
     
+    @State var errorMessage: String = ""
+    
     func clearParameter(){
         selectedImage = nil
         imageName = ""
+        imageAuthor = ""
         imageDescription = ""
         imageWidth = ""
         imageHeight = ""
@@ -97,19 +101,28 @@ struct ScanningEnvironment: View {
         worldImageToFind.append(name)
     }
     func validateFields() {
-        showError2 = (selectedImage == nil) || imageName.isEmpty || imageDescription.isEmpty || imageWidth.isEmpty || imageHeight.isEmpty
+        showError2 = (selectedImage == nil) || imageName.isEmpty || imageDescription.isEmpty || imageWidth.isEmpty || imageHeight.isEmpty || imageAuthor.isEmpty
+        
+        if showError2==false {
+            showError2 = CoreDataManager.shared.isPresent(name: imageName, author: imageAuthor, image: selectedImage!)
+            errorMessage = "Art Work already present"
+        }
         
         if showError2==false {
             roomCaptureView.loadImages(
                 mapName:mapName,
                 image: selectedImage!,
                 name:imageName,
+                author: imageAuthor,
                 description:imageDescription,
                 width:imageWidth,
                 height:imageHeight)
             clearParameter()
             showAlertForImages = true
-        } else { showAlertForImages = true }
+        } else {
+            errorMessage = "All fields are mandatory"
+            showAlertForImages = true
+        }
     }
     func validateParameter() {
         showError = mapName.isEmpty
@@ -118,7 +131,10 @@ struct ScanningEnvironment: View {
             print("Nome mappa Salvato: " + mapName)
             showAlertForMapName = false
             showAlertForImages = true
-        } else { showAlertForMapName = true }
+        } else {
+            errorMessage = "Map name is mandatory"
+            showAlertForMapName = true
+        }
     }
     func closeImageAlert() {
         clearParameter()
@@ -307,7 +323,7 @@ struct ScanningEnvironment: View {
             
             Text("Write Global Map Name:").font(.headline).padding(.top)
             if showError {
-                Text("Map name is mandatory").foregroundColor(.red).font(.caption)
+                Text("\(errorMessage)").foregroundColor(.red).font(.caption)
             }
             TextField("Map name:", text: $mapName).textFieldStyle(RoundedBorderTextFieldStyle()).padding(.horizontal)
             Divider()
@@ -327,7 +343,7 @@ struct ScanningEnvironment: View {
         VStack(spacing:20){
             Text("Insert Works of Art:").font(.headline).padding(.top)
             if showError2 {
-                Text("All fields are mandatory").foregroundColor(.red).font(.caption)
+                Text("\(errorMessage)").foregroundColor(.red).font(.caption)
             }
             PhotosPicker(
                 selection: $selectedItem,
@@ -355,6 +371,8 @@ struct ScanningEnvironment: View {
             }
             VStack(spacing:0){
                 TextField("Image name:", text: $imageName).padding(.horizontal)
+                Divider()
+                TextField("Image author:", text: $imageAuthor).padding(.horizontal)
                 Divider()
                 TextField("Image description:", text: $imageDescription).padding(.horizontal)
                 Divider()

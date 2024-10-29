@@ -13,11 +13,12 @@ class CoreDataManager {
         }}
     }
     
-    func saveItem(names: String, mapNames: String, x_sizes: Float, y_sizes: Float, comments: String, images: UIImage, itemColors: UIColor){
+    func saveItem(names: String, authors: String, mapNames: String, x_sizes: Float, y_sizes: Float, comments: String, images: UIImage, itemColors: UIColor){
         let context = persistentContainer.viewContext
         let newItem = Item(context: context)
         newItem.id = UUID()
         newItem.name = names
+        newItem.author = authors
         newItem.mapName = mapNames
         newItem.x_size = x_sizes
         newItem.y_size = y_sizes
@@ -122,6 +123,16 @@ class CoreDataManager {
         } catch {
             print("Error, item not setted: \(error)")
         }
+    }
+    
+    func isPresent(name: String, author: String , image: UIImage) -> Bool{
+        let items : [Item] = fetchAllItem()
+        for item in items {
+            if item.name == name && item.author == author && item.imageData == image.pngData() {
+                return true
+            }
+        }
+        return false
     }
     
     func deleteItem(item: Item) {
