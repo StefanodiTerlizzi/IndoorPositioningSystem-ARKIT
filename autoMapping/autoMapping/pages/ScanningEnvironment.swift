@@ -332,9 +332,9 @@ struct ScanningEnvironment: View {
                     Text("OK")
                 }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
                 Divider()
-                Button("Canc", role: .cancel) {
-                    //presentationMode.wrappedValue.dismiss()
-                }.frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
+                Button(action: {mapName=""}, label: {
+                    Text("Canc")
+                }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
             }
         }.padding()
     }
@@ -391,7 +391,7 @@ struct ScanningEnvironment: View {
                     Text("OK")
                 }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
                 Divider()
-                Button(action: {closeImageAlert()}, label: {
+                Button(action: {clearParameter().self}, label: {
                     Text("Canc")
                 }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
             }

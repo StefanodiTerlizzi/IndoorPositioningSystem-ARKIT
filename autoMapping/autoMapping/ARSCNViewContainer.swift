@@ -204,6 +204,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             node.addChildNode(boxNode)
             
             CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
+            print("Image:\(String(describing: referenceImageName)), found")
             
         }
         /*guard !(anchor is ARPlaneAnchor) else { return }
@@ -266,6 +267,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         panelNode.name = "infoPanel"
         
         node.addChildNode(panelNode)
+        print("Open of infoPanel for image:\(String(describing: infoItem?.name))")
         
     }
     

@@ -76,6 +76,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             name: Notification.Name("ArtWorks"),
             object: nil,
             userInfo: [ "artWorksName": name ])
+        print("image:\(name), loaded")
     }
     
     func continueCapture() {
