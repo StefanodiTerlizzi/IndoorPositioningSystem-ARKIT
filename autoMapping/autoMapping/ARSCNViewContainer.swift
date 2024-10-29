@@ -184,8 +184,10 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             let width = referenceImage.physicalSize.width
             let height = referenceImage.physicalSize.height
             let material = SCNMaterial()
-            let color = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)?.itemColor
-            let uiColor = UIColor(named: color ?? "red")?.withAlphaComponent(0.2)
+            let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
+            var color = "red"
+            if itemImage != nil { color = itemImage?.itemColor ?? "red"}
+            let uiColor = UIColor(named: color)?.withAlphaComponent(0.2)
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
             material.blendMode = .alpha
@@ -258,6 +260,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
         let material = SCNMaterial()
         let infoItem: Item? = CoreDataManager.shared.fetchItemByName(name: node.name ?? "Unknown image")
+        if infoItem == nil{return}
         let infoView = createInfoView(infoItem: infoItem, parentNode: panelNode)
         material.diffuse.contents = infoView.asImage()
         panel.materials = [material]
