@@ -39,12 +39,13 @@ struct ARSCNViewContainer: UIViewRepresentable {
     
     func planeDetectorRun() {
         configuration.planeDetection = [/*.horizontal,*/ .vertical]
-        guard let referenceImage = extractReferenceImages() else {
+        let referenceImage = extractReferenceImages()
+        if referenceImage != nil {
+            configuration.detectionImages = referenceImage
+            configuration.maximumNumberOfTrackedImages = referenceImage?.count ?? 0
+        } else {
             print("No image retieved.")
-            return
         }
-        configuration.detectionImages = referenceImage
-        configuration.maximumNumberOfTrackedImages = referenceImage.count
         sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
         sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin, ARSCNDebugOptions.showFeaturePoints]
     }
@@ -72,14 +73,15 @@ struct ARSCNViewContainer: UIViewRepresentable {
             }
         }
         
-        guard let referenceImage = extractReferenceImages() else {
-            print("No image retieved.")
-            return
-        }
+        let referenceImage = extractReferenceImages()
         
         configuration.initialWorldMap = worldMap
-        configuration.detectionImages = referenceImage
-        configuration.maximumNumberOfTrackedImages = referenceImage.count
+        if referenceImage != nil {
+            configuration.detectionImages = referenceImage
+            configuration.maximumNumberOfTrackedImages = referenceImage?.count ?? 1
+        } else {
+            print("No image retieved.")
+        }
         
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(delegate.handleTap(gestureRecognize:)))
         sceneView.addGestureRecognizer(tapGestureRecognizer)

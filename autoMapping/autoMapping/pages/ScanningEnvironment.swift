@@ -129,7 +129,7 @@ struct ScanningEnvironment: View {
         showError = mapName.isEmpty
         
         if showError==false {
-            print("Nome mappa Salvato: " + mapName)
+            print("map name saved: " + mapName)
             showAlertForMapName = false
             showAlertForImages = true
         } else {
