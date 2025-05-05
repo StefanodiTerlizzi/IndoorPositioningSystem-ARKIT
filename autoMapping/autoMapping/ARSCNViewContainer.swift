@@ -73,15 +73,15 @@ struct ARSCNViewContainer: UIViewRepresentable {
             }
         }
         
-        let referenceImage = extractReferenceImages()
+        guard let referenceImage = extractReferenceImages() else {
+            print("No image retieved.")
+            return
+        }
         
         configuration.initialWorldMap = worldMap
-        if referenceImage != nil {
-            configuration.detectionImages = referenceImage
-            configuration.maximumNumberOfTrackedImages = referenceImage?.count ?? 1
-        } else {
-            print("No image retieved.")
-        }
+        configuration.detectionImages = referenceImage
+        configuration.maximumNumberOfTrackedImages = referenceImage.count
+        
         
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(delegate.handleTap(gestureRecognize:)))
         sceneView.addGestureRecognizer(tapGestureRecognizer)
