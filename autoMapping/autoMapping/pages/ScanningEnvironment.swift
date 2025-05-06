@@ -121,7 +121,7 @@ struct ScanningEnvironment: View {
             clearParameter()
             showAlertForImages = true
         } else {
-            errorMessage = "All fields are mandatory"
+            errorMessage = "upload failed"
             showAlertForImages = true
         }
     }

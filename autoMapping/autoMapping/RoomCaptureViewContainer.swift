@@ -104,7 +104,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     }
     
     func redoCapture() {
-        roomCaptureView!.captureSession.run(configuration: RoomCaptureSession.Configuration())
+        roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
     class SessionDelegate: UIViewController, RoomCaptureSessionDelegate, RoomCaptureViewDelegate, ARSessionDelegate {
@@ -211,6 +211,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
 
             DispatchQueue.main.async{
                 self.r?.sceneView.scene?.rootNode.addChildNode(boxNode)
+                self.recognizedImageNodes.append(boxNode)
             }
             
             CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
@@ -253,7 +254,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                     session.arSession.getCurrentWorldMap(completionHandler:{ [self] worldMap, error in
                         
                         if let m = worldMap {
-                            
                             saveARWorldMap(m, name)
                             
                             if let n = worldMap?.rawFeaturePoints.identifiers.difference(from: featuresPoints) {
