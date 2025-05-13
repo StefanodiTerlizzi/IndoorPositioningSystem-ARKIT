@@ -141,8 +141,13 @@ struct SCNViewContainer: UIViewRepresentable {
                 //print($0.scale)
                 let material = SCNMaterial()
                 material.diffuse.contents = UIColor.black
+                // ADD CONDITION FOR REFERENCE IMAGE BOX AND ADD HIS COLOUR
                 if ($0.name!.prefix(5) == "Floor") {material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)}
                 if ($0.name!.prefix(4) == "Door" || $0.name!.prefix(4) == "Open") {material.diffuse.contents = UIColor.red}
+                if (verifyImageName(nameSearch: $0.name!)){
+                    let color = CoreDataManager.shared.fetchItemByName(name: $0.name!)?.itemColor ?? "green"
+                    material.diffuse.contents = UIColor(named: color)?.withAlphaComponent(0.8)
+                }
                 material.lightingModel = .physicallyBased
                 $0.geometry?.materials = [material]
                 //let angle = $0.eulerAngles.y
@@ -500,4 +505,15 @@ struct DictToRototraslation {
     let traslation: simd_float4x4
     let r_Y: simd_float4x4
     
+}
+
+func verifyImageName(nameSearch: String) -> Bool {
+    var verify: Bool = false
+    let names: [String] = CoreDataManager.shared.fetchAllItemNames()
+    for name in names {
+        if name == nameSearch {
+            verify = true
+        }
+    }
+    return verify
 }

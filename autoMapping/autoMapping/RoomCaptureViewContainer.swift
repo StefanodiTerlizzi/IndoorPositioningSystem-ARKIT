@@ -25,8 +25,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     
     private let configuration: RoomCaptureSession.Configuration = RoomCaptureSession.Configuration()
     
-    let sceneView = SCNView()
-    
     var imageSelection:PhotosPickerItem? = nil {
         didSet{
             
@@ -45,7 +43,9 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         roomCaptureView!.delegate = sessionDelegate
         roomCaptureView!.captureSession.arSession.delegate = sessionDelegate
         sessionDelegate.setRoomCaptureView(self)
-        
+    }
+    
+    func startImageDetection() {
         if #available(iOS 17.0, *) {
             if let referenceImages = extractReferenceImages() {
                 let config = ARWorldTrackingConfiguration()
@@ -61,16 +61,11 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     
     func makeUIView(context: Context) -> RoomCaptureView {
         roomCaptureView!.captureSession.run(configuration: configuration)
-        
-        sceneView.frame = roomCaptureView!.bounds
-        sceneView.scene = SCNScene()
-        sceneView.backgroundColor = .clear
-        sceneView.isUserInteractionEnabled = false
-        roomCaptureView!.addSubview(sceneView)
         return roomCaptureView!
     }
     
-    func updateUIView(_ uiView: RoomCaptureView, context: Context) {}
+    func updateUIView(_ uiView: RoomCaptureView, context: Context) {
+    }
     
     func stopCapture(pauseARSession: Bool, mapName: String) {
         
@@ -87,6 +82,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         }
     }
     
+    
     func loadImages(mapName: String, image: UIImage, name: String, author: String, description: String, width: String, height: String){
         let x_size: Float = Float(width) ?? 0.1
         let y_size: Float = Float(height) ?? 0.1
@@ -100,10 +96,12 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     }
     
     func continueCapture() {
+        sessionDelegate.recognizedImageNodes = []
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
     func redoCapture() {
+        sessionDelegate.recognizedImageNodes = []
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
@@ -148,6 +146,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                 handleImageRecognition(imageAnchor)
             }
         }
+        
         func handleImageRecognition(_ imageAnchor: ARImageAnchor) {
             let imageAnchor = imageAnchor
             let referenceImage = imageAnchor.referenceImage
@@ -160,65 +159,41 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             
             let transform = imageAnchor.transform
             
-            let position = SCNVector3(
-                x: transform.columns.3.x,
-                y: transform.columns.3.y,
-                z: transform.columns.3.z
-            )
-            let scaleX = simd_length(simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z))
-            let scaleY = simd_length(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
-            let scaleZ = simd_length(simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))
-            let scale = SCNVector3(scaleX, scaleY, scaleZ)
+            let scaleX = simd_length(transform.columns.0)
+            let scaleY = simd_length(transform.columns.1)
+            let scaleZ = simd_length(transform.columns.2)
             
-            let rotationMatrix = transform.columns
-            let sy = sqrt(rotationMatrix.0.x * rotationMatrix.0.x + rotationMatrix.1.x * rotationMatrix.1.x)
-            let singular = sy < 1e-6
-            let eulerX : Float
-            let eulerY : Float
-            let eulerZ : Float
-            if !singular {
-                eulerX = atan2(rotationMatrix.2.y, rotationMatrix.2.z)
-                eulerY = atan2(-rotationMatrix.2.x, sy)
-                eulerZ = atan2(rotationMatrix.1.x, rotationMatrix.0.x)
-            } else {
-                eulerX = atan2(-rotationMatrix.1.z, rotationMatrix.1.y)
-                eulerY = atan2(-rotationMatrix.2.x, sy)
-                eulerZ = 0
-            }
-            let eulerAngles = SCNVector3(eulerX, eulerY, eulerZ)
-            
-            let width = referenceImage.physicalSize.width
-            let height = referenceImage.physicalSize.height
-            let material = SCNMaterial()
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
             var color = "red"
             if itemImage != nil { color = itemImage?.itemColor ?? "red"}
-            let uiColor = UIColor(named: color)?.withAlphaComponent(0.2)
+            let uiColor = UIColor(named: color)?.withAlphaComponent(0.5)
+            let material = SCNMaterial()
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
             material.blendMode = .alpha
             
-            let box = SCNBox(width: width, height: height, length: 0.02, chamferRadius: 0)
+            let box = SCNBox(width: CGFloat(scaleX), height: CGFloat(scaleY), length: CGFloat(scaleZ), chamferRadius: 0)
             box.materials = [material]
+            
             let boxNode = SCNNode(geometry: box)
             let orientation = SCNMatrix4(imageAnchor.transform)
             
             boxNode.transform = orientation
-            boxNode.position = position
-            boxNode.scale = scale
-            boxNode.eulerAngles = eulerAngles
             boxNode.name = referenceImageName
+            
+            let anchorName = referenceImage.name ?? "CustomBox"
+            let customAnchor = ARAnchor(name: anchorName, transform: transform)
 
             DispatchQueue.main.async{
-                self.r?.sceneView.scene?.rootNode.addChildNode(boxNode)
                 self.recognizedImageNodes.append(boxNode)
+                self.r?.roomCaptureView?.captureSession.arSession.add(anchor: customAnchor)
+                CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
+                print("Image:\(String(describing: referenceImageName)), found")
             }
+        }
             
-            CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
-            print("Image:\(String(describing: referenceImageName)), found")
-            
-            
-            func captureSession(_ session: RoomCaptureSession, didAdd room: CapturedRoom) {}
+            func captureSession(_ session: RoomCaptureSession, didAdd room: CapturedRoom) {
+            }
             
             func captureSession(_ session: RoomCaptureSession, didChange room: CapturedRoom) {}
             
@@ -248,8 +223,8 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                     //            name = "_\(formatter.string(from: Date()))"
                     let finalroom = try! await self.roomBuilder.capturedRoom(from: data)
                     
-                    saveJSONMap(finalroom, name)
-                    saveUSDZMap(finalroom, name)
+                    saveJSONMap(finalroom, name, recognizedImageNodes)
+                    saveUSDZMap(finalroom, name, recognizedImageNodes)
                     
                     session.arSession.getCurrentWorldMap(completionHandler:{ [self] worldMap, error in
                         
@@ -305,17 +280,16 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             }
         }
     }
-}
+
 var generatedColors = Set<String>()
 extension UIColor {
     static func generateUniqueRandomColor() -> UIColor {
         var uniqueColor: UIColor
         var colorKey: String
-        
         repeat {
-            let red = CGFloat.random(in: 0...1)
-            let green = CGFloat.random(in: 0...1)
-            let blue = CGFloat.random(in: 0...1)
+            let red = CGFloat.random(in: 0.1...0.9)
+            let green = CGFloat.random(in: 0.1...0.9)
+            let blue = CGFloat.random(in: 0.1...0.9)
             
             uniqueColor = UIColor(red: red, green: green, blue: blue, alpha: 1.0)
             colorKey = "\(red),\(green),\(blue)"
@@ -325,3 +299,10 @@ extension UIColor {
         return uniqueColor
     }
 }
+extension float4x4 {
+    init(translation: SIMD3<Float>) {
+        self = matrix_identity_float4x4
+        columns.3 = SIMD4<Float>(translation.x, translation.y, translation.z, 1)
+    }
+}
+

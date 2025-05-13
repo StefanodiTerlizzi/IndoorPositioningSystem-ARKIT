@@ -61,6 +61,7 @@ struct ARSCNViewContainer: UIViewRepresentable {
         var id = 0
         if let data = try? Data(contentsOf: Model.shared.directoryURL.appending(path: "JsonParametric").appending(path: filename)) {
             if let room = try? JSONDecoder().decode(CapturedRoom.self, from: data) {
+                // ADD CYCLE FOR THE REFERENCE IMAGE ANCHOR
                 for e in room.doors {
                     worldMap.anchors.append(ARAnchor(name: "door\(id)", transform: e.transform))
                     id = id+1
@@ -71,6 +72,33 @@ struct ARSCNViewContainer: UIViewRepresentable {
                     
                 }
             }
+            /*do{
+                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]{
+                    if let objects = json["objects"] as? [[String: Any]]{
+                        for object in objects {
+                            if let category = object["category"] as? [String: Any],
+                               let storage = category["storage"] as? [String: Any]{
+                                if let attributes = object["attributes"] as? [String: Any],
+                                   let imageName = attributes["imageName"] as? String,
+                                   let color = attributes["color"] as? String {
+                                    
+                                    if let transform = object["transform"] as? [Float] {
+                                        let matrix = simd_float4x4(
+                                            simd_float4(transform[0], transform[1], transform[2], transform[3]),
+                                            simd_float4(transform[4], transform[5], transform[6], transform[7]),
+                                            simd_float4(transform[8], transform[9], transform[10], transform[11]),
+                                            simd_float4(transform[12], transform[13], transform[14], transform[15])
+                                        )
+                                        worldMap.anchors.append(ARAnchor(name: imageName, transform: matrix))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }catch{
+                print("error, invalid Json file.")
+            }*/
         }
         
         guard let referenceImage = extractReferenceImages() else {
@@ -190,7 +218,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
             var color = "red"
             if itemImage != nil { color = itemImage?.itemColor ?? "red"}
-            let uiColor = UIColor(named: color)?.withAlphaComponent(0.2)
+            let uiColor = UIColor(named: color)?.withAlphaComponent(0.5)
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
             material.blendMode = .alpha
@@ -221,6 +249,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         DispatchQueue.main.async {
             node.addChildNode(sphereNode)
         }*/
+        
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
@@ -240,7 +269,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
     }
     
-    @objc func handleTap(gestureRecognize: UITapGestureRecognizer) {
+    @objc func  handleTap(gestureRecognize: UITapGestureRecognizer) {
         let sceneViewTappedOn = gestureRecognize.view as! ARSCNView
         let touchLocation = gestureRecognize.location(in: sceneViewTappedOn)
         

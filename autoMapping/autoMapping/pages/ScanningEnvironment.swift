@@ -39,6 +39,7 @@ struct ScanningEnvironment: View {
     @State private var dimensions: [String] = []
     @State private var showError: Bool = false
     @State private var showError2: Bool = false
+    @State private var imageloaded: Bool = false
     
     @State var signDoor = false
     
@@ -120,6 +121,7 @@ struct ScanningEnvironment: View {
                 height:imageHeight)
             clearParameter()
             showAlertForImages = true
+            imageloaded = true
         } else {
             errorMessage = "upload failed"
             showAlertForImages = true
@@ -140,6 +142,9 @@ struct ScanningEnvironment: View {
     func closeImageAlert() {
         clearParameter()
         showAlertForImages = false
+        if imageloaded == true {
+            roomCaptureView.startImageDetection()
+        }
     }
     
     

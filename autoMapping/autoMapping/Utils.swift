@@ -166,38 +166,79 @@ func saveARWorldMap(_ worldMap: ARWorldMap, _ name: String) {
     }
 }
 
-func saveJSONMap(_ room: CapturedRoom, _ name: String) {
+func saveJSONMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
     do {
         let jsonEncoder = JSONEncoder()
         jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let jsonData = try jsonEncoder.encode(room)
-        try jsonData.write(to: Model.shared.directoryURL.appending(path: "JsonParametric").appending(path: name))
+        let jsonModified = addNodesToJson(data: jsonData, newNodes: newNodes)
+        try jsonModified.write(to: Model.shared.directoryURL.appending(path: "JsonParametric").appending(path: name))
         NotificationCenter.default.post(name: .genericMessage, object: "saved JSON: true")
+        if let prettyString = String(data: jsonModified, encoding: .utf8){
+            print(prettyString)
+        }
     } catch {
         print("Error = \(error)")
         NotificationCenter.default.post(name: .genericMessage, object: "saved JSON: false")
     }
 }
 
-func saveUSDZMap(_ room: CapturedRoom, _ name: String) {
+func saveUSDZMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
+    
     do {
-        if #available(iOS 17.0, *) {
-            try room.export(
-                to: Model.shared.directoryURL.appending(path: "MapUsdz").appending(path: "\(name).usdz"),
-                metadataURL: Model.shared.directoryURL.appending(path: "PlistMetadata").appending(path: "\(name).plist"),
-                exportOptions: [.parametric, .mesh]
-            )
+        if newNodes.isEmpty{
+            if #available(iOS 17.0, *) {
+                try room.export(
+                    to: Model.shared.directoryURL.appending(path: "MapUsdz").appending(path: "\(name).usdz"),
+                    metadataURL: Model.shared.directoryURL.appending(path: "PlistMetadata").appending(path: "\(name).plist"),
+                    exportOptions: [.parametric, .mesh]
+                )
+                // ADD PARAMETER NEWNODELIST TO THE FUNC
+                // REOPEN THE USDZ FILE WITH SCENEKIT
+                // CYCLE ON THE NEW NODE
+                // ADD THE NODE TO THE SCENE
+                // SAVE THE SCENE IN USDZ FILE (THE SAME PREVIOUS URL )
+            } else {
+                try room.export(
+                    to: Model.shared.directoryURL.appending(path: "MapUsdz").appending(path: "\(name).usdz"),
+                    exportOptions: [.parametric]
+                )
+            }
         } else {
-            try room.export(
-                to: Model.shared.directoryURL.appending(path: "MapUsdz").appending(path: "\(name).usdz"),
-                exportOptions: [.parametric]
-            )
+            let scene = addNodesToUSDZ(room: room, newNodes: newNodes)
+            scene.write(to: Model.shared.directoryURL.appending(path: "MapUsdz").appending(path: "\(name).usdz"),
+                        options: nil,
+                        delegate: nil,progressHandler: {(totalProgres, error, stop) in
+                if let error = error {
+                    print("Error = \(error)")
+                    stop.pointee = true
+                } else {
+                    print("export progress:\(totalProgres)")
+                }})
+            
         }
         NotificationCenter.default.post(name: .genericMessage, object: "saved USDZ: true")
     } catch {
         print("Error = \(error)")
         NotificationCenter.default.post(name: .genericMessage, object: "saved USDZ: false")
     }
+}
+
+func addNodesToUSDZ(room: CapturedRoom ,newNodes: [SCNNode]) -> SCNScene{
+    let fileManager = FileManager.default
+    let tempDir = fileManager.temporaryDirectory
+    let usdzURL = tempDir.appendingPathComponent("tempRoom.usdz")
+    var scene = SCNScene()
+    do{
+        try room.export(to: usdzURL,exportOptions: [.parametric])
+        scene = try SCNScene(url: usdzURL)
+        for n in newNodes {
+            scene.rootNode.addChildNode(n)
+        }
+    } catch {
+        print("Error = \(error)")
+    }
+    return scene
 }
 
 /// Loads a captured room for the given URL.
@@ -253,6 +294,9 @@ func exportJson(from capturedStructure: CapturedStructure, to url: URL) throws {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     let data = try encoder.encode(capturedStructure)
+    if let prettyString = String(data: data, encoding: .utf8){
+        print(prettyString)
+    }
     try data.write(to: url)
 }
 
@@ -751,6 +795,64 @@ func updateJSONFile(_ dict: [String: Any]) {
             print(error.localizedDescription)
         }
     }
+}
+
+func addNodesToJson(data: Data, newNodes: [SCNNode]) -> Data{
+    guard var json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+        print("error, invalid Json file.")
+        return data
+    }
+    
+    for n in newNodes {
+        let (min, max) = n.boundingBox
+        let width = CGFloat(max.x - min.x)
+        let height = CGFloat(max.y - min.y)
+        let length = CGFloat(max.z - min.z)
+        let matrix_0 = n.simdTransform.columns.0
+        let matrix_1 = n.simdTransform.columns.1
+        let matrix_2 = n.simdTransform.columns.2
+        let matrix_3 = n.simdTransform.columns.3
+        var colorName = "red"
+        if let color = n.geometry?.firstMaterial?.diffuse.contents as? UIColor {
+            colorName = color.accessibilityName
+        }
+        
+        let newObject : [String: Any] = [
+            "category": [
+                "storage": [:]
+            ],
+            "confidence": [
+                "high": [:]
+            ],
+            "dimension":[width, height, length],
+            "parentIdentifier": NSNull(),
+            "identifier": UUID().uuidString,
+            "attributes": [
+                "imageName": n.name,
+                "color": colorName
+            ],
+            "story": 0,
+            "transform": [
+                matrix_0.x, matrix_1.x, matrix_2.x, matrix_3.x,
+                matrix_0.y, matrix_1.y, matrix_2.y, matrix_3.y,
+                matrix_0.z, matrix_1.z, matrix_2.z, matrix_3.z,
+                matrix_0.w, matrix_1.w, matrix_2.w, matrix_3.w
+            ]
+        ]
+        
+        if var objects = json["objects"] as? [[String: Any]] {
+            objects.append(newObject)
+            json["objects"] = objects
+        } else {
+            json["objects"] = [newObject]
+        }
+    }
+    
+    guard let newData = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]) else {
+        print("error, malformed json file.")
+        return data }
+    
+    return newData
 }
 
 func createDictroto() -> [DictToRototraslation]? {
