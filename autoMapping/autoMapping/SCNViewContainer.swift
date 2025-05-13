@@ -144,8 +144,8 @@ struct SCNViewContainer: UIViewRepresentable {
                 // ADD CONDITION FOR REFERENCE IMAGE BOX AND ADD HIS COLOUR
                 if ($0.name!.prefix(5) == "Floor") {material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)}
                 if ($0.name!.prefix(4) == "Door" || $0.name!.prefix(4) == "Open") {material.diffuse.contents = UIColor.red}
-                if (verifyImageName(nameSearch: $0.name!)){
-                    let color = CoreDataManager.shared.fetchItemByName(name: $0.name!)?.itemColor ?? "green"
+                if (verifyImageName(nameSearch: $0.name!.filter {$0.isLetter})){
+                    let color = CoreDataManager.shared.fetchItemByName(name: $0.name!.filter {$0.isLetter})?.itemColor ?? "green"
                     material.diffuse.contents = UIColor(named: color)?.withAlphaComponent(0.8)
                 }
                 material.lightingModel = .physicallyBased
