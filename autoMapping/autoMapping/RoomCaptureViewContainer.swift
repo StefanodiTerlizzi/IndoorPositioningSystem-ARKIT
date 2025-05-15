@@ -45,9 +45,9 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         sessionDelegate.setRoomCaptureView(self)
     }
     
-    func startImageDetection() {
+    func startImageDetection(mapNameSelected: String) {
         if #available(iOS 17.0, *) {
-            if let referenceImages = extractReferenceImages() {
+            if let referenceImages = extractReferenceImagesFormap(mapNameRef: mapNameSelected) {
                 let config = ARWorldTrackingConfiguration()
                 config.detectionImages = referenceImages
                 config.sceneReconstruction = .mesh
@@ -80,6 +80,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         } else {
             roomCaptureView!.captureSession.stop()
         }
+        sessionDelegate.deleteNodes()
     }
     
     
@@ -96,12 +97,12 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     }
     
     func continueCapture() {
-        sessionDelegate.recognizedImageNodes = []
+        sessionDelegate.deleteNodes()
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
     func redoCapture() {
-        sessionDelegate.recognizedImageNodes = []
+        sessionDelegate.deleteNodes()
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
@@ -124,6 +125,8 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         var recognizedImageNodes: [SCNNode] = []
         
         func setRoomCaptureView(_ r: RoomCaptureViewContainer) {self.r = r}
+        
+        func deleteNodes(){self.recognizedImageNodes=[]}
         
         func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
             session.arSession.getCurrentWorldMap(completionHandler:{ worldMap, error in
@@ -242,6 +245,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                         }
                     })
                 }
+                deleteNodes()
             }
             
             // Decide to post-process and show the final results.

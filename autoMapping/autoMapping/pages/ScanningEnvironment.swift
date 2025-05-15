@@ -143,7 +143,7 @@ struct ScanningEnvironment: View {
         clearParameter()
         showAlertForImages = false
         if imageloaded == true {
-            roomCaptureView.startImageDetection()
+            roomCaptureView.startImageDetection(mapNameSelected: mapName)
         }
     }
     

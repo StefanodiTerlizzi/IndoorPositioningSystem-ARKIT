@@ -171,10 +171,12 @@ func saveJSONMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
         let jsonEncoder = JSONEncoder()
         jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let jsonData = try jsonEncoder.encode(room)
-        let jsonModified = addNodesToJson(data: jsonData, newNodes: newNodes)
-        try jsonModified.write(to: Model.shared.directoryURL.appending(path: "JsonParametric").appending(path: name))
+        try jsonData.write(to: Model.shared.directoryURL.appending(path: "JsonParametric").appending(path: name))
+        if !newNodes.isEmpty {
+            try generateJsonForNode(for: newNodes, in: room, to: Model.shared.directoryURL.appending(path: "JsonNode").appending(path: name.filter {!$0.isNumber}))
+        }
         NotificationCenter.default.post(name: .genericMessage, object: "saved JSON: true")
-        if let prettyString = String(data: jsonModified, encoding: .utf8){
+        if let prettyString = String(data: jsonData, encoding: .utf8){
             print(prettyString)
         }
     } catch {
@@ -797,62 +799,53 @@ func updateJSONFile(_ dict: [String: Any]) {
     }
 }
 
-func addNodesToJson(data: Data, newNodes: [SCNNode]) -> Data{
-    guard var json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-        print("error, invalid Json file.")
-        return data
-    }
+func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: URL) throws {
+    var resultArray: [[String: Any]] = []
     
-    for n in newNodes {
-        let (min, max) = n.boundingBox
-        let width = CGFloat(max.x - min.x)
-        let height = CGFloat(max.y - min.y)
-        let length = CGFloat(max.z - min.z)
-        let matrix_0 = n.simdTransform.columns.0
-        let matrix_1 = n.simdTransform.columns.1
-        let matrix_2 = n.simdTransform.columns.2
-        let matrix_3 = n.simdTransform.columns.3
-        var colorName = "red"
-        if let color = n.geometry?.firstMaterial?.diffuse.contents as? UIColor {
-            colorName = color.accessibilityName
-        }
+    for n in nodes {
+        let objectTransform = n.simdTransform
         
-        let newObject : [String: Any] = [
-            "category": [
-                "storage": [:]
-            ],
-            "confidence": [
-                "high": [:]
-            ],
-            "dimension":[width, height, length],
-            "parentIdentifier": NSNull(),
-            "identifier": UUID().uuidString,
-            "attributes": [
-                "imageName": n.name,
-                "color": colorName
-            ],
-            "story": 0,
-            "transform": [
-                matrix_0.x, matrix_1.x, matrix_2.x, matrix_3.x,
-                matrix_0.y, matrix_1.y, matrix_2.y, matrix_3.y,
-                matrix_0.z, matrix_1.z, matrix_2.z, matrix_3.z,
-                matrix_0.w, matrix_1.w, matrix_2.w, matrix_3.w
+        if let wall = findWallForObject(in: room, objectTransform: objectTransform) {
+            let relative = relativeTransform(of: objectTransform, to: wall.transform)
+            var colorName = "red"
+            if let color = n.geometry?.firstMaterial?.diffuse.contents as? UIColor {
+                colorName = color.accessibilityName
+            }
+            let name = n.name ?? "Unknown"
+            
+            let matrix_0 = n.simdTransform.columns.0
+            let matrix_1 = n.simdTransform.columns.1
+            let matrix_2 = n.simdTransform.columns.2
+            let matrix_3 = n.simdTransform.columns.3
+            let transform = [matrix_0.x, matrix_1.x, matrix_2.x, matrix_3.x,
+                             matrix_0.y, matrix_1.y, matrix_2.y, matrix_3.y,
+                             matrix_0.z, matrix_1.z, matrix_2.z, matrix_3.z,
+                             matrix_0.w, matrix_1.w, matrix_2.w, matrix_3.w
             ]
-        ]
-        
-        if var objects = json["objects"] as? [[String: Any]] {
-            objects.append(newObject)
-            json["objects"] = objects
-        } else {
-            json["objects"] = [newObject]
+            
+            let dict: [String: Any] = [
+                "wallID": wall.identifier,
+                "transform" : transform,
+                "nodeColor": colorName,
+                "imageName": name
+            ]
+            
+            resultArray.append(dict)
         }
     }
     
-    guard let newData = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]) else {
-        print("error, malformed json file.")
-        return data }
+    if FileManager.default.fileExists(atPath: url.path) {
+        let existingData = try Data(contentsOf: url)
+        if let existingArray = try JSONSerialization.jsonObject(with: existingData) as? [[String: Any]] {
+            for e in existingArray {
+                resultArray.append(e)
+            }
+        }
+    }
     
-    return newData
+    let data = try JSONSerialization.data(withJSONObject: resultArray, options: .prettyPrinted)
+    try data.write(to: url)
+    
 }
 
 func createDictroto() -> [DictToRototraslation]? {
@@ -881,4 +874,70 @@ func createDictroto() -> [DictToRototraslation]? {
         return nil
     }
     
+}
+
+func wallEndpoints(from wall: CapturedRoom.Surface) -> (startPoint: SIMD3<Float>, endPoint: SIMD3<Float>) {
+    let center = SIMD3<Float>(wall.transform.columns.3.x,
+                              wall.transform.columns.3.y,
+                              wall.transform.columns.3.z)
+        
+    let direction = SIMD3<Float>(wall.transform.columns.0.x,
+                                 wall.transform.columns.0.y,
+                                 wall.transform.columns.0.z)
+        
+    let halfLength = wall.dimensions.x / 2.0
+        
+    let startPoint = center - direction * halfLength
+    let endPoint = center + direction * halfLength
+        
+    return (startPoint, endPoint)
+}
+
+func projectPointOnLineSegment(point: SIMD3<Float>, start: SIMD3<Float>, end: SIMD3<Float>) -> SIMD3<Float> {
+    let lineVec = end - start
+    let t = max(0, min(1, simd_dot(point - start, lineVec) / simd_length_squared(lineVec)))
+    return start + t * lineVec
+}
+
+func findWallForObject(in room: CapturedRoom, objectTransform: simd_float4x4) -> CapturedRoom.Surface? {
+    let objectPosition = SIMD3<Float>(objectTransform.columns.3.x,
+                                      objectTransform.columns.3.y,
+                                      objectTransform.columns.3.z)
+        
+    var closestWall: CapturedRoom.Surface? = nil
+    var minDistance = Float.greatestFiniteMagnitude
+        
+    for wall in room.walls {
+        let (startPoint, endPoint) = wallEndpoints(from: wall)
+            
+        let projectedPoint = projectPointOnLineSegment(point: objectPosition, start: startPoint, end: endPoint)
+        let distance = simd_distance(objectPosition, projectedPoint)
+            
+        if distance < minDistance {
+            minDistance = distance
+            closestWall = wall
+        }
+    }
+        
+    let threshold: Float = 0.1
+        
+    return (minDistance < threshold) ? closestWall : nil
+}
+
+func relativeTransform(of objectTransform: simd_float4x4, to referenceTransform: simd_float4x4) -> simd_float4x4 {
+    // trasformazione relativa = inverse(reference) * object
+    let referenceInverse = simd_inverse(referenceTransform)
+    return simd_mul(referenceInverse, objectTransform)
+}
+
+func loadNodeNames(from url: URL) throws -> [String] {
+    let data = try Data(contentsOf: url)
+    
+    guard let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
+        print("Invalid JSON structure")
+        return []
+    }
+    
+    let nodeNames = jsonArray.compactMap { $0["nodeName"] as? String }
+    return nodeNames
 }

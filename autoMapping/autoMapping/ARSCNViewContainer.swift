@@ -376,9 +376,35 @@ func fetchDataItem() -> [Item]{
     let items: [Item] = CoreDataManager.shared.fetchAllItem()
     return items
 }
+func fetchDataItemFormap(mapNameRef: String) -> [Item]{
+    let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapNameRef)
+    return items
+}
 
 func extractReferenceImages() -> Set<ARReferenceImage>? {
     let items = fetchDataItem()
+    var referenceImages = Set<ARReferenceImage>()
+    
+    for item in items {
+        if let imageData = item.imageData, let uiImage = UIImage(data: imageData) {
+            guard let cgImage = uiImage.cgImage else {
+                print("Error in converision from UIImage to CGImage")
+                continue
+            }
+            
+            let imageSizeInMeters: CGFloat = CGFloat(item.x_size)
+            let arImage = ARReferenceImage(cgImage, orientation: .up, physicalWidth: imageSizeInMeters)
+            
+            arImage.name = item.name ?? "Unknown Image"
+            referenceImages.insert(arImage)
+            
+        }
+    }
+    return referenceImages.isEmpty ? nil : referenceImages
+}
+
+func extractReferenceImagesFormap(mapNameRef: String) -> Set<ARReferenceImage>? {
+    let items = fetchDataItemFormap(mapNameRef: mapNameRef)
     var referenceImages = Set<ARReferenceImage>()
     
     for item in items {
