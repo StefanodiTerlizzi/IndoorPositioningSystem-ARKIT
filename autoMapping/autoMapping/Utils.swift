@@ -8,6 +8,7 @@
 import Foundation
 import ARKit
 import RoomPlan
+import SceneKit
 
 //let jsonString = """
 //{
@@ -166,19 +167,18 @@ func saveARWorldMap(_ worldMap: ARWorldMap, _ name: String) {
     }
 }
 
-func saveJSONMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
+func saveJSONMap(_ room: CapturedRoom, _ name: String, _ newNode: [SCNNode]) {
     do {
+        let generalMapName = name.filter {!$0.isNumber}
         let jsonEncoder = JSONEncoder()
         jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let jsonData = try jsonEncoder.encode(room)
         try jsonData.write(to: Model.shared.directoryURL.appending(path: "JsonParametric").appending(path: name))
-        if !newNodes.isEmpty {
-            try generateJsonForNode(for: newNodes, in: room, to: Model.shared.directoryURL.appending(path: "JsonNode").appending(path: name.filter {!$0.isNumber}))
+        if !newNode.isEmpty{
+            try generateJsonForNode(for: newNode, in: room, to: Model.shared.directoryURL.appending(path: "JsonNode").appendingPathComponent("\(generalMapName).json"))
         }
         NotificationCenter.default.post(name: .genericMessage, object: "saved JSON: true")
-        if let prettyString = String(data: jsonData, encoding: .utf8){
-            print(prettyString)
-        }
+        
     } catch {
         print("Error = \(error)")
         NotificationCenter.default.post(name: .genericMessage, object: "saved JSON: false")
@@ -208,9 +208,16 @@ func saveUSDZMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
             }
         } else {
             let scene = addNodesToUSDZ(room: room, newNodes: newNodes)
+            let option: [String: Any] = [
+                "SCNSceneExportCreateNormalsIfAbsent": true,
+                "SCNSceneExportEmbedTextures": true,
+                "SCNSceneExportConvertToYUp": true,
+                "SCNSceneExportConvertUnitsToMeters": true
+            ]
             scene.write(to: Model.shared.directoryURL.appending(path: "MapUsdz").appending(path: "\(name).usdz"),
-                        options: nil,
-                        delegate: nil,progressHandler: {(totalProgres, error, stop) in
+                        options: option,
+                        delegate: nil,
+                        progressHandler: {(totalProgres, error, stop) in
                 if let error = error {
                     print("Error = \(error)")
                     stop.pointee = true
@@ -232,7 +239,12 @@ func addNodesToUSDZ(room: CapturedRoom ,newNodes: [SCNNode]) -> SCNScene{
     let usdzURL = tempDir.appendingPathComponent("tempRoom.usdz")
     var scene = SCNScene()
     do{
-        try room.export(to: usdzURL,exportOptions: [.parametric])
+        if #available(iOS 17.0, *) {
+            try room.export(to: usdzURL,exportOptions: [.parametric, .mesh])
+        } else {
+            try room.export(to: usdzURL,exportOptions: [.parametric])
+        }
+        
         scene = try SCNScene(url: usdzURL)
         for n in newNodes {
             scene.rootNode.addChildNode(n)
@@ -277,9 +289,32 @@ func mergeSelectedRooms(mapName: String) {
                 let roomDestinationURL = meshDestinationURL.deletingPathExtension().appendingPathExtension("json")
                 try exportJson(from: f, to: roomDestinationURL)
                 let metadataDestinationURL = meshDestinationURL.deletingPathExtension().appendingPathExtension("plist")
-                try f.export(to: meshDestinationURL,
-                                        metadataURL: metadataDestinationURL,
-                                        exportOptions: [.mesh])
+                let nodes: [[String: Any]] = loadNodesJson(from: Model.shared.directoryURL.appending(path: "JsonNode").appendingPathComponent("\(mapName).json"))
+                if nodes.isEmpty{
+                    try f.export(to: meshDestinationURL,
+                                            metadataURL: metadataDestinationURL,
+                                            exportOptions: [.mesh])
+                }else{
+                    
+                     let scene = addNodeToMergedRooms(to: f, for: nodes)
+                     let option: [String: Any] = [
+                         "SCNSceneExportCreateNormalsIfAbsent": true,
+                         "SCNSceneExportEmbedTextures": true,
+                         "SCNSceneExportConvertToYUp": true,
+                         "SCNSceneExportConvertUnitsToMeters": true
+                     ]
+                     scene.write(to: meshDestinationURL,
+                                 options: option,
+                                 delegate: nil,
+                                 progressHandler: {(totalProgres, error, stop) in
+                         if let error = error {
+                             print("Error = \(error)")
+                             stop.pointee = true
+                         } else {
+                             print("export progress:\(totalProgres)")
+                         }})
+                }
+                
             }
             NotificationCenter.default.post(name: .genericMessage, object: "finish marging")
         } catch {
@@ -290,15 +325,84 @@ func mergeSelectedRooms(mapName: String) {
     }
 }
 
+@available(iOS 17.0, *)
+func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: Any]]) -> SCNScene {
+    let fileManager = FileManager.default
+    let tempDir = fileManager.temporaryDirectory
+    let usdzURL = tempDir.appendingPathComponent("tempRoom.usdz")
+    var scene = SCNScene()
+    
+    let walls: [CapturedStructure.Surface] = room.walls
+    do{
+        try room.export(to: usdzURL, exportOptions: [.mesh])
+        scene = try SCNScene(url: usdzURL)
+        for node in newNodes {
+            let stringMatrix = node["transform"] as? [String] ?? []
+            let matrix: [Float] = stringMatrix.compactMap {Float($0)}
+            let transform = simd_float4x4(
+                simd_float4(matrix[0], matrix[1], matrix[2], matrix[3]),
+                simd_float4(matrix[4], matrix[5], matrix[6], matrix[7]),
+                simd_float4(matrix[8], matrix[9], matrix[10], matrix[11]),
+                simd_float4(matrix[12], matrix[13], matrix[14], matrix[15])
+            )
+            let nodeColor: String = node["nodeColor"] as? String ?? "red"
+            let imageName: String = node["imageName"] as? String ?? "Unknown"
+            if let wallID:String = node["wallID"] as? String,
+               let wall: CapturedStructure.Surface = findWall(from: walls, toId: wallID){
+                print("found wall with id:\(wallID)")
+                let nodeGlobalTrasnsform = simd_mul(wall.transform, transform)
+                
+                let n = createNode(transform: nodeGlobalTrasnsform, named: imageName, color: nodeColor)
+                
+                scene.rootNode.addChildNode(n)
+                print("new nodes added!")
+            }
+        }
+        
+    } catch {
+        print("Error = \(error)")
+    }
+    
+    return scene
+}
+
+func createNode(transform matrix: simd_float4x4, named name: String, color colorName: String) -> SCNNode{
+    
+    let scaleX = simd_length(matrix.columns.0)
+    let scaleY = simd_length(matrix.columns.1)
+    let scaleZ = simd_length(matrix.columns.2)
+    let uiColor = UIColor.color(from: colorName).withAlphaComponent(0.5)
+    let material = SCNMaterial()
+    material.diffuse.contents = uiColor
+    material.isDoubleSided = true
+    material.blendMode = .alpha
+    
+    let box = SCNBox(width: CGFloat(scaleX), height: CGFloat(scaleY), length: CGFloat(scaleZ), chamferRadius: 0)
+    box.materials = [material]
+    
+    let boxNode = SCNNode(geometry: box)
+    boxNode.transform = SCNMatrix4(matrix)
+    boxNode.name = name
+    
+    return boxNode
+}
+
+@available(iOS 17.0, *)
+func findWall(from walls: [CapturedStructure.Surface], toId wallId: String ) -> CapturedStructure.Surface? {
+    for wall in walls {
+        if wall.identifier.uuidString.elementsEqual(wallId){
+            return wall
+        }
+    }
+    return nil
+}
+
 /// Exports the given captured structure in JSON format to a URL.
 @available(iOS 17.0, *)
 func exportJson(from capturedStructure: CapturedStructure, to url: URL) throws {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     let data = try encoder.encode(capturedStructure)
-    if let prettyString = String(data: data, encoding: .utf8){
-        print(prettyString)
-    }
     try data.write(to: url)
 }
 
@@ -364,6 +468,7 @@ func createSupportDirectories() {
         try FileManager.default.createDirectory(atPath: Model.shared.directoryURL.appending(path: "Maps").path, withIntermediateDirectories: true, attributes: nil)
         try FileManager.default.createDirectory(atPath: Model.shared.directoryURL.appending(path: "JsonMaps").path, withIntermediateDirectories: true, attributes: nil)
         try FileManager.default.createDirectory(atPath: Model.shared.directoryURL.appending(path: "PlistMetadata").path, withIntermediateDirectories: true, attributes: nil)
+        try FileManager.default.createDirectory(atPath: Model.shared.directoryURL.appending(path: "JsonNode").path, withIntermediateDirectories: true, attributes: nil)
     } catch {
         
     }
@@ -801,7 +906,7 @@ func updateJSONFile(_ dict: [String: Any]) {
 
 func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: URL) throws {
     var resultArray: [[String: Any]] = []
-    
+    print("genereting json...")
     for n in nodes {
         let objectTransform = n.simdTransform
         
@@ -813,24 +918,25 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
             }
             let name = n.name ?? "Unknown"
             
-            let matrix_0 = n.simdTransform.columns.0
-            let matrix_1 = n.simdTransform.columns.1
-            let matrix_2 = n.simdTransform.columns.2
-            let matrix_3 = n.simdTransform.columns.3
-            let transform = [matrix_0.x, matrix_1.x, matrix_2.x, matrix_3.x,
-                             matrix_0.y, matrix_1.y, matrix_2.y, matrix_3.y,
-                             matrix_0.z, matrix_1.z, matrix_2.z, matrix_3.z,
-                             matrix_0.w, matrix_1.w, matrix_2.w, matrix_3.w
+            let matrix_0 = relative.columns.0
+            let matrix_1 = relative.columns.1
+            let matrix_2 = relative.columns.2
+            let matrix_3 = relative.columns.3
+            let transform: [String] = ["\(matrix_0.x)", "\(matrix_1.x)", "\(matrix_2.x)", "\(matrix_3.x)",
+                                       "\(matrix_0.y)", "\(matrix_1.y)", "\(matrix_2.y)", "\(matrix_3.x)",
+                                       "\(matrix_0.z)", "\(matrix_1.z)", "\(matrix_2.z)", "\(matrix_3.x)",
+                                       "\(matrix_0.w)", "\(matrix_1.w)", "\(matrix_2.w)", "\(matrix_3.x)"
             ]
             
             let dict: [String: Any] = [
-                "wallID": wall.identifier,
+                "wallID": wall.identifier.uuidString,
                 "transform" : transform,
                 "nodeColor": colorName,
                 "imageName": name
             ]
             
             resultArray.append(dict)
+            print("new object added to json: \(url.description)")
         }
     }
     
@@ -845,6 +951,7 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
     
     let data = try JSONSerialization.data(withJSONObject: resultArray, options: .prettyPrinted)
     try data.write(to: url)
+    print("json write")
     
 }
 
@@ -918,10 +1025,7 @@ func findWallForObject(in room: CapturedRoom, objectTransform: simd_float4x4) ->
             closestWall = wall
         }
     }
-        
-    let threshold: Float = 0.1
-        
-    return (minDistance < threshold) ? closestWall : nil
+    return closestWall
 }
 
 func relativeTransform(of objectTransform: simd_float4x4, to referenceTransform: simd_float4x4) -> simd_float4x4 {
@@ -930,14 +1034,38 @@ func relativeTransform(of objectTransform: simd_float4x4, to referenceTransform:
     return simd_mul(referenceInverse, objectTransform)
 }
 
-func loadNodeNames(from url: URL) throws -> [String] {
+func loadNodeNames(from url: URL) throws -> [(name: String, color: String)] {
     let data = try Data(contentsOf: url)
-    
+
     guard let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
         print("Invalid JSON structure")
         return []
     }
-    
-    let nodeNames = jsonArray.compactMap { $0["nodeName"] as? String }
-    return nodeNames
+
+    let nodeInfo = jsonArray.compactMap { dict -> (String, String)? in
+        guard let name = dict["imageName"] as? String,
+              let color = dict["nodeColor"] as? String else {
+            return nil
+        }
+        return (name, color)
+    }
+
+    return nodeInfo
 }
+
+func loadNodesJson(from url: URL) -> [[String: Any]]{
+    
+    do{
+        let data = try Data(contentsOf: url)
+
+        guard let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
+            print("Invalid JSON structure")
+            return []
+        }
+        return jsonArray
+    } catch {
+        print("Invalid JSON structure")
+        return []
+    }
+}
+

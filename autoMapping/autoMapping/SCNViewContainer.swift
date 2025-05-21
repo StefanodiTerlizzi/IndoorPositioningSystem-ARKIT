@@ -61,8 +61,14 @@ struct SCNViewContainer: UIViewRepresentable {
         
         //print("--> LOADING GLOBAL MAP TO CONVERTION")
         //print(scnView.scene)
-        
-        drawContent(borders: borders)
+        var artWorksName: [(name: String, color: String)] = []
+        do {
+           artWorksName = try loadNodeNames(from: Model.shared.directoryURL.appending(path: "JsonNode").appending(path: "\(name).json"))
+        }catch{
+            print("Loading Error: \(error)")
+        }
+
+        drawContent(borders: borders, artWorks: artWorksName)
         setMassCenter()
         setCamera()
         let tapGestureRecognizer = UITapGestureRecognizer(
@@ -79,8 +85,15 @@ struct SCNViewContainer: UIViewRepresentable {
             .appending(path: "MapUsdz")
             .appending(path: "\(name).usdz"))
         //print("load single map")
-        drawContent(borders: borders)
         
+        var artWorksName: [(name: String, color: String)]  = []
+        let artWorksMap = name.filter {!$0.isNumber}
+        do {
+           artWorksName = try loadNodeNames(from: Model.shared.directoryURL.appending(path: "JsonNode").appending(path: "\(artWorksMap).json"))
+        }catch{
+            print("Loading Error: \(error)")
+        }
+        drawContent(borders: borders, artWorks: artWorksName)
         setMassCenter()
         setCamera()
         let tapGestureRecognizer = UITapGestureRecognizer(
@@ -126,7 +139,7 @@ struct SCNViewContainer: UIViewRepresentable {
         scnView.scene?.rootNode.addChildNode(massCenter)
     }
     
-    func drawContent(borders: Bool) {
+    func drawContent(borders: Bool, artWorks:[(name: String, color: String)]) {
         //print("draw content")
         //add room content
         print(borders)
@@ -140,13 +153,19 @@ struct SCNViewContainer: UIViewRepresentable {
                 //print($0.name)
                 //print($0.scale)
                 let material = SCNMaterial()
-                material.diffuse.contents = UIColor.black
                 // ADD CONDITION FOR REFERENCE IMAGE BOX AND ADD HIS COLOUR
                 if ($0.name!.prefix(5) == "Floor") {material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)}
-                if ($0.name!.prefix(4) == "Door" || $0.name!.prefix(4) == "Open") {material.diffuse.contents = UIColor.red}
-                if (verifyImageName(nameSearch: $0.name!.filter {$0.isLetter})){
-                    let color = CoreDataManager.shared.fetchItemByName(name: $0.name!.filter {$0.isLetter})?.itemColor ?? "green"
-                    material.diffuse.contents = UIColor(named: color)?.withAlphaComponent(0.8)
+                else if ($0.name!.prefix(4) == "Door" || $0.name!.prefix(4) == "Open") {
+                    material.diffuse.contents = UIColor.red
+                    $0.position.z += 0.05
+                }
+                else if (isPresent(elem: $0.name!, array: artWorks)){
+                    print("is present art work \($0.name!)")
+                    let color = getElement(elem: $0.name!, array: artWorks) ?? "red"
+                    material.diffuse.contents = UIColor.color(from: color)
+                    // CONTROLLARE COME VENGONO INSERITI I COLORI
+                }else{
+                    material.diffuse.contents = UIColor.black
                 }
                 material.lightingModel = .physicallyBased
                 $0.geometry?.materials = [material]
@@ -160,6 +179,21 @@ struct SCNViewContainer: UIViewRepresentable {
                 }
                 //$0.eulerAngles.y = angle
             }
+    }
+    
+    func isPresent(elem elementName: String, array elements: [(name: String, color: String)]) -> Bool{
+        
+        let present = elements.contains {$0.name == elementName}
+        
+        return present
+    }
+    
+    func getElement(elem elementName: String, array elements: [(name: String, color: String)]) -> String? {
+        if let element = elements.first(where: {$0.name==elementName}){
+            return element.color
+        } else {
+            return nil
+        }
     }
     
     func drawOrigin(_ o: SCNVector3,_ color: UIColor, _ size: CGFloat, _ addY: Bool = false) {
@@ -373,8 +407,15 @@ struct SCNViewContainer: UIViewRepresentable {
         
     }
     
-    func changeColorOfNode(nodeName: String, color: UIColor) {
-        drawContent(borders: false)
+    func changeColorOfNode(nodeName: String, color: UIColor, mapName: String) {
+        var artWorksName: [(name: String, color: String)] = []
+        let artWorksMap = mapName.filter {!$0.isNumber}
+        do {
+           artWorksName = try loadNodeNames(from: Model.shared.directoryURL.appending(path: "JsonNode").appending(path: "\(artWorksMap).json"))
+        }catch{
+            print("Loading Error: \(error)")
+        }
+        drawContent(borders: false, artWorks: artWorksName)
         if let _node = scnView.scene?.rootNode.childNodes(passingTest: { n,_ in n.name != nil && n.name! == nodeName }).first {
             var copy = _node.copy() as! SCNNode
             copy.name = "__selected__"

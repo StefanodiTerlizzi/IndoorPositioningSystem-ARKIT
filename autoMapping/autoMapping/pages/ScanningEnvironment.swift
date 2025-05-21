@@ -102,6 +102,10 @@ struct ScanningEnvironment: View {
     func updateImageToFindList(with name: String){
         worldImageToFind.append(name)
     }
+    
+    func deleteImageToFind(){
+        worldImageFind.removeAll()
+    }
     func validateFields() {
         showError2 = (selectedImage == nil) || imageName.isEmpty || imageDescription.isEmpty || imageWidth.isEmpty || imageHeight.isEmpty || imageAuthor.isEmpty
         
@@ -187,7 +191,7 @@ struct ScanningEnvironment: View {
                     
                     Button("RESTART"){
                         isScanningRoom = true
-                        roomCaptureView.redoCapture()
+                        roomCaptureView.redoCapture(mapname: mapName)
                     }.buttonStyle(.bordered)
                         .frame(width: 150, height: 70)
                         .background(Color(red: 255/255, green: 30/255, blue: 30/255))
@@ -249,7 +253,7 @@ struct ScanningEnvironment: View {
                     if(showContinueButton){
                         Button("SCAN \(cont)° ROOM"){
                             isScanningRoom = true
-                            roomCaptureView.continueCapture()
+                            roomCaptureView.continueCapture(mapname:mapName)
                             
                             showMergeButton = false
                             showContinueButton = false
@@ -306,6 +310,8 @@ struct ScanningEnvironment: View {
                     print("UI upgrade with new art work")
                 }
                    
+            }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("ArtWorksDelete"))) {_ in 
+                self.deleteImageToFind()
             }
             
             if showAlertForMapName {

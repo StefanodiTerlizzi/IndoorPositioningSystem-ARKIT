@@ -40,7 +40,7 @@ struct ARSCNViewContainer: UIViewRepresentable {
     func planeDetectorRun() {
         configuration.planeDetection = [/*.horizontal,*/ .vertical]
         let referenceImage = extractReferenceImages()
-        if referenceImage != nil {
+        if referenceImage != nil && referenceImage?.isEmpty == false {
             configuration.detectionImages = referenceImage
             configuration.maximumNumberOfTrackedImages = referenceImage?.count ?? 0
         } else {
@@ -100,16 +100,15 @@ struct ARSCNViewContainer: UIViewRepresentable {
                 print("error, invalid Json file.")
             }*/
         }
-        
-        guard let referenceImage = extractReferenceImages() else {
+        let referenceImage = extractReferenceImagesFormap(mapNameRef:filename.filter {!$0.isNumber})
+        if referenceImage != nil && referenceImage?.isEmpty == false {
+            configuration.detectionImages = referenceImage
+            configuration.maximumNumberOfTrackedImages = referenceImage?.count ?? 0
+        } else {
             print("No image retieved.")
-            return
         }
         
         configuration.initialWorldMap = worldMap
-        configuration.detectionImages = referenceImage
-        configuration.maximumNumberOfTrackedImages = referenceImage.count
-        
         
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(delegate.handleTap(gestureRecognize:)))
         sceneView.addGestureRecognizer(tapGestureRecognizer)
@@ -218,12 +217,12 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
             var color = "red"
             if itemImage != nil { color = itemImage?.itemColor ?? "red"}
-            let uiColor = UIColor(named: color)?.withAlphaComponent(0.5)
+            let uiColor = UIColor.color(from: color).withAlphaComponent(0.5)
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
             material.blendMode = .alpha
             
-            let box = SCNBox(width: width, height: height, length: 0.02, chamferRadius: 0)
+            let box = SCNBox(width: width, height: height, length: 0.2, chamferRadius: 0)
             box.materials = [material]
             let boxNode = SCNNode(geometry: box)
             let orientation = SCNMatrix4(imageAnchor.transform)

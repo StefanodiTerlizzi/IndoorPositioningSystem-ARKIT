@@ -164,7 +164,7 @@ struct Navigation: View {
     
     func extractArtWorksName(mapName:String) -> [Item] {
         var artWorks: [Item] = []
-        let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapName)
+        let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapName.filter {!$0.isNumber})
         
         for item in items {
             if item.isDetected == true{
@@ -272,10 +272,10 @@ struct Navigation: View {
                 })
                 if indexMapLoaded != -1 {
                     if !worldImageFind.isEmpty {
-                        Text("ArtWork Found:")
+                        Text("ArtWork in map:")
                         ScrollView{
                             ForEach(worldImageFind, id:\.self){ val in
-                                Text(val.name ?? "Unknown Image").font(.footnote).foregroundColor(Color(val.itemColor ?? "blue"))
+                                Text(val.name ?? "Unknown Image").font(.footnote).foregroundColor(Color(UIColor.color(from: val.itemColor ?? "white")))
                             }
                         }.frame(maxHeight:30)
                     }

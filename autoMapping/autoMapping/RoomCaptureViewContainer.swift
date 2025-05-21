@@ -80,14 +80,13 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         } else {
             roomCaptureView!.captureSession.stop()
         }
-        sessionDelegate.deleteNodes()
     }
     
     
     func loadImages(mapName: String, image: UIImage, name: String, author: String, description: String, width: String, height: String){
         let x_size: Float = Float(width) ?? 0.1
         let y_size: Float = Float(height) ?? 0.1
-        let color = UIColor.generateUniqueRandomColor()
+        let color = UIColor.generateColor(random: true)
         CoreDataManager.shared.saveItem(names: name, authors: author, mapNames: mapName, x_sizes: x_size, y_sizes: y_size, comments: description, images: image, itemColors: color)
         NotificationCenter.default.post(
             name: Notification.Name("ArtWorks"),
@@ -96,13 +95,15 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         print("image:\(name), loaded")
     }
     
-    func continueCapture() {
+    func continueCapture(mapname:String) {
         sessionDelegate.deleteNodes()
+        startImageDetection(mapNameSelected: mapname)
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
-    func redoCapture() {
+    func redoCapture(mapname:String) {
         sessionDelegate.deleteNodes()
+        startImageDetection(mapNameSelected: mapname)
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
@@ -126,7 +127,10 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         
         func setRoomCaptureView(_ r: RoomCaptureViewContainer) {self.r = r}
         
-        func deleteNodes(){self.recognizedImageNodes=[]}
+        func deleteNodes(){
+            self.recognizedImageNodes=[]
+            NotificationCenter.default.post(name: Notification.Name("ArtWorksDelete"), object: nil)
+        }
         
         func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
             session.arSession.getCurrentWorldMap(completionHandler:{ worldMap, error in
@@ -169,13 +173,15 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
             var color = "red"
             if itemImage != nil { color = itemImage?.itemColor ?? "red"}
-            let uiColor = UIColor(named: color)?.withAlphaComponent(0.5)
+            let uiColor = UIColor.color(from: color).withAlphaComponent(0.5)
             let material = SCNMaterial()
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
             material.blendMode = .alpha
-            
-            let box = SCNBox(width: CGFloat(scaleX), height: CGFloat(scaleY), length: CGFloat(scaleZ), chamferRadius: 0)
+            let width = Float(referenceImage.physicalSize.width) * scaleX
+            let height = 0.2 * scaleZ
+            let lenght = Float(referenceImage.physicalSize.height) * scaleY
+            let box = SCNBox(width: CGFloat(width), height: CGFloat(height), length: CGFloat(lenght), chamferRadius: 0)
             box.materials = [material]
             
             let boxNode = SCNNode(geometry: box)
@@ -183,13 +189,11 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             
             boxNode.transform = orientation
             boxNode.name = referenceImageName
-            
-            let anchorName = referenceImage.name ?? "CustomBox"
-            let customAnchor = ARAnchor(name: anchorName, transform: transform)
+            let deltaZ = (scaleZ - height) / 2.0
+            boxNode.position.z -= deltaZ
 
             DispatchQueue.main.async{
                 self.recognizedImageNodes.append(boxNode)
-                self.r?.roomCaptureView?.captureSession.arSession.add(anchor: customAnchor)
                 CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
                 print("Image:\(String(describing: referenceImageName)), found")
             }
@@ -245,7 +249,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                         }
                     })
                 }
-                deleteNodes()
             }
             
             // Decide to post-process and show the final results.
@@ -287,20 +290,53 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
 
 var generatedColors = Set<String>()
 extension UIColor {
-    static func generateUniqueRandomColor() -> UIColor {
+    
+    static func generateColor(random: Bool) -> UIColor {
         var uniqueColor: UIColor
         var colorKey: String
+
+        let colorsSelection = [UIColor.red, UIColor.green, UIColor.blue, UIColor.yellow, UIColor.gray, UIColor.brown, UIColor.purple, UIColor.cyan, UIColor.magenta, UIColor.orange]
         repeat {
-            let red = CGFloat.random(in: 0.1...0.9)
-            let green = CGFloat.random(in: 0.1...0.9)
-            let blue = CGFloat.random(in: 0.1...0.9)
+            let random = Int.random(in: 0..<colorsSelection.count)
             
-            uniqueColor = UIColor(red: red, green: green, blue: blue, alpha: 1.0)
-            colorKey = "\(red),\(green),\(blue)"
+            uniqueColor = colorsSelection[random]
+            colorKey = uniqueColor.accessibilityName
         } while generatedColors.contains(colorKey)
         
         generatedColors.insert(colorKey)
         return uniqueColor
+    }
+    
+    static func color(from string: String) -> UIColor{
+        let s = string.lowercased()
+        switch true {
+            case s.contains("red"):
+                return UIColor.red
+            case s.contains("green"):
+                return UIColor.green
+            case s.contains("blue"):
+                return UIColor.blue
+            case s.contains("yellow"):
+                return UIColor.yellow
+            case s.contains("gray"):
+                return UIColor.gray
+            case s.contains("brown"):
+                return UIColor.brown
+            case s.contains("purple"):
+                return UIColor.purple
+            case s.contains("cyan"):
+                return UIColor.cyan
+            case s.contains("magenta"):
+                return UIColor.magenta
+            case s.contains("orange"):
+                return UIColor.orange
+            case s.contains("white"):
+                return UIColor.white
+            case s.contains("black"):
+                return UIColor.black
+            default:
+                return UIColor.red
+            }
     }
 }
 extension float4x4 {

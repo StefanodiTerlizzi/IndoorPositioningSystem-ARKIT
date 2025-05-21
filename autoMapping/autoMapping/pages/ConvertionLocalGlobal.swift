@@ -206,7 +206,7 @@ struct ConvertionLocalGlobal: View {
                         Text("Choose Global Node")
                         ForEach(globalNodes, id: \.self) {Text($0)}
                     }.onChange(of: selectedGlobalNodeName, perform: { _ in
-                        globalView.changeColorOfNode(nodeName: selectedGlobalNodeName, color: UIColor.green)
+                        globalView.changeColorOfNode(nodeName: selectedGlobalNodeName, color: UIColor.green, mapName: selectedMap)
                         
                         let firstTwoLetters = String(selectedGlobalNodeName.prefix(2))
                         
@@ -283,7 +283,7 @@ struct ConvertionLocalGlobal: View {
                             Text("Choose Local Node").foregroundColor(.white)
                             ForEach(localNodes, id: \.self) {Text($0)}
                         }.onChange(of: selectedLocalNodeName, perform: { _ in
-                            localView.changeColorOfNode(nodeName: selectedLocalNodeName, color: UIColor.green)
+                            localView.changeColorOfNode(nodeName: selectedLocalNodeName, color: UIColor.green, mapName: selectedMap)
                             selectedLocalNode = localView.scnView.scene?.rootNode.childNodes(passingTest: {n,_ in n.name != nil && n.name! == selectedLocalNodeName}).first
                             
                             // updateGlobalNodes(selectedLocalNodeName: selectedLocalNodeName)
