@@ -222,7 +222,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             material.isDoubleSided = true
             material.blendMode = .alpha
             
-            let box = SCNBox(width: width, height: height, length: 0.2, chamferRadius: 0)
+            let box = SCNBox(width: width, height: 0.2, length: height, chamferRadius: 0)
             box.materials = [material]
             let boxNode = SCNNode(geometry: box)
             let orientation = SCNMatrix4(imageAnchor.transform)
