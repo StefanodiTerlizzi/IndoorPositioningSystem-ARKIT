@@ -3,7 +3,7 @@
 //  autoMapping
 //
 //  Created by Stefano di Terlizzi on 12/07/23.
-//  Upgraded by Michel Attilio Iodice on 29/10/24.
+//  Upgraded by Michel Attilio Iodice on 20/05/25..
 //
 
 import SwiftUI
@@ -546,15 +546,4 @@ struct DictToRototraslation {
     let traslation: simd_float4x4
     let r_Y: simd_float4x4
     
-}
-
-func verifyImageName(nameSearch: String) -> Bool {
-    var verify: Bool = false
-    let names: [String] = CoreDataManager.shared.fetchAllItemNames()
-    for name in names {
-        if name == nameSearch {
-            verify = true
-        }
-    }
-    return verify
 }

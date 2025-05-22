@@ -14,6 +14,7 @@
 		7B86046F2AAEE53700DD5A44 /* extensionARWorldMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B86046E2AAEE53700DD5A44 /* extensionARWorldMap.swift */; };
 		7BBB1BC22AB4092A00613D02 /* extensionNotificationName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBB1BC12AB4092A00613D02 /* extensionNotificationName.swift */; };
 		7BC408C22AB006730048F519 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC408C12AB006730048F519 /* Utils.swift */; };
+		84A9C4592DDF85EF0044D1E0 /* ImageDetectionUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A9C4582DDF85EF0044D1E0 /* ImageDetectionUtils.swift */; };
 		84B563952CCA582600F640E6 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B563942CCA582600F640E6 /* CoreDataManager.swift */; };
 		84B563982CCA585600F640E6 /* autoMapping.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 84B563962CCA585600F640E6 /* autoMapping.xcdatamodeld */; };
 		84B5639A2CCA594A00F640E6 /* ExportRoomViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B563992CCA594A00F640E6 /* ExportRoomViewContainer.swift */; };
@@ -41,6 +42,7 @@
 		7B86046E2AAEE53700DD5A44 /* extensionARWorldMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extensionARWorldMap.swift; sourceTree = "<group>"; };
 		7BBB1BC12AB4092A00613D02 /* extensionNotificationName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extensionNotificationName.swift; sourceTree = "<group>"; };
 		7BC408C12AB006730048F519 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		84A9C4582DDF85EF0044D1E0 /* ImageDetectionUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDetectionUtils.swift; sourceTree = "<group>"; };
 		84B563942CCA582600F640E6 /* CoreDataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
 		84B563972CCA585600F640E6 /* autoMapping.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = autoMapping.xcdatamodel; sourceTree = "<group>"; };
 		84B563992CCA594A00F640E6 /* ExportRoomViewContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExportRoomViewContainer.swift; sourceTree = "<group>"; };
@@ -111,6 +113,7 @@
 		B7034E092A59679200A777B6 /* autoMapping */ = {
 			isa = PBXGroup;
 			children = (
+				84A9C4582DDF85EF0044D1E0 /* ImageDetectionUtils.swift */,
 				84B5639C2CCA597600F640E6 /* Preview Content */,
 				3FAEB5542B14DC430064EAD9 /* pages */,
 				B727B1432A65AC330062D65A /* Room.usdz */,
@@ -223,6 +226,7 @@
 				B7034E0D2A59679300A777B6 /* ContentView.swift in Sources */,
 				84B563982CCA585600F640E6 /* autoMapping.xcdatamodeld in Sources */,
 				B7B4D6212A629EC00091C052 /* Origin.swift in Sources */,
+				84A9C4592DDF85EF0044D1E0 /* ImageDetectionUtils.swift in Sources */,
 				7B86046F2AAEE53700DD5A44 /* extensionARWorldMap.swift in Sources */,
 				7BC408C22AB006730048F519 /* Utils.swift in Sources */,
 				B7034E0B2A59679300A777B6 /* AppDelegate.swift in Sources */,

@@ -3,7 +3,7 @@
 //  autoMapping
 //
 //  Created by Stefano di Terlizzi on 11/07/23.
-//  Upgraded by Michel Attilio Iodice on 24/10/24.
+//  Upgraded by Michel Attilio Iodice on 10/05/25.
 //
 
 import SwiftUI
@@ -350,85 +350,10 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
     }
     
-    func verifyImageName(nameSearch: String) -> Bool {
-        var verify: Bool = false
-        let names: [String] = CoreDataManager.shared.fetchAllItemNames()
-        for name in names {
-            if name == nameSearch {
-                verify = true
-            }
-        }
-        return verify
-    }
-    
-    
 }
-
 
 struct ARSCNViewContainer_Previews: PreviewProvider {
     static var previews: some View {
         ARSCNViewContainer()
-    }
-}
-
-func fetchDataItem() -> [Item]{
-    let items: [Item] = CoreDataManager.shared.fetchAllItem()
-    return items
-}
-func fetchDataItemFormap(mapNameRef: String) -> [Item]{
-    let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapNameRef)
-    return items
-}
-
-func extractReferenceImages() -> Set<ARReferenceImage>? {
-    let items = fetchDataItem()
-    var referenceImages = Set<ARReferenceImage>()
-    
-    for item in items {
-        if let imageData = item.imageData, let uiImage = UIImage(data: imageData) {
-            guard let cgImage = uiImage.cgImage else {
-                print("Error in converision from UIImage to CGImage")
-                continue
-            }
-            
-            let imageSizeInMeters: CGFloat = CGFloat(item.x_size)
-            let arImage = ARReferenceImage(cgImage, orientation: .up, physicalWidth: imageSizeInMeters)
-            
-            arImage.name = item.name ?? "Unknown Image"
-            referenceImages.insert(arImage)
-            
-        }
-    }
-    return referenceImages.isEmpty ? nil : referenceImages
-}
-
-func extractReferenceImagesFormap(mapNameRef: String) -> Set<ARReferenceImage>? {
-    let items = fetchDataItemFormap(mapNameRef: mapNameRef)
-    var referenceImages = Set<ARReferenceImage>()
-    
-    for item in items {
-        if let imageData = item.imageData, let uiImage = UIImage(data: imageData) {
-            guard let cgImage = uiImage.cgImage else {
-                print("Error in converision from UIImage to CGImage")
-                continue
-            }
-            
-            let imageSizeInMeters: CGFloat = CGFloat(item.x_size)
-            let arImage = ARReferenceImage(cgImage, orientation: .up, physicalWidth: imageSizeInMeters)
-            
-            arImage.name = item.name ?? "Unknown Image"
-            referenceImages.insert(arImage)
-            
-        }
-    }
-    return referenceImages.isEmpty ? nil : referenceImages
-}
-
-extension UIView {
-    func asImage() -> UIImage {
-        let renderer = UIGraphicsImageRenderer(bounds: bounds)
-        return renderer.image {
-            rendererContext in layer.render(in: rendererContext.cgContext)
-        }
     }
 }

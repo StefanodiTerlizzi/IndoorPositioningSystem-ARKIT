@@ -3,7 +3,7 @@
 //  autoMapping
 //
 //  Created by student on 25/10/24.
-//  Upgraded by Michel Attilio Iodice on 28/10/24.
+//  Upgraded by Michel Attilio Iodice on 14/05/25.
 
 import SwiftUI
 import simd
@@ -162,18 +162,6 @@ struct Navigation: View {
         }
     }
     
-    func extractArtWorksName(mapName:String) -> [Item] {
-        var artWorks: [Item] = []
-        let items: [Item] = CoreDataManager.shared.fetchItemByMapName(mapName: mapName.filter {!$0.isNumber})
-        
-        for item in items {
-            if item.isDetected == true{
-                artWorks.append(item)
-            }
-        }
-        
-        return artWorks
-    }
 //    AUTOMATIC SWITCH
 //    func executeMapSwitching(){
 //        switching = true

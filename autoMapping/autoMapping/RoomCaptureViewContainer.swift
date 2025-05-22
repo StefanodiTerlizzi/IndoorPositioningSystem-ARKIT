@@ -3,7 +3,7 @@
 //  autoMapping
 //
 //  Created by Stefano di Terlizzi on 11/07/23.
-//  Upgraded by Michel Attilio Iodice on 24/10/24.
+//  Upgraded by Michel Attilio Iodice on 15/05/25.
 //
 
 import SwiftUI
@@ -187,10 +187,10 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             let boxNode = SCNNode(geometry: box)
             let orientation = SCNMatrix4(imageAnchor.transform)
             
-            boxNode.transform = orientation
+            boxNode.simdTransform = imageAnchor.transform
             boxNode.name = referenceImageName
             let deltaZ = (scaleZ - height) / 2.0
-            boxNode.position.z -= deltaZ
+            boxNode.simdWorldPosition.z -= deltaZ
 
             DispatchQueue.main.async{
                 self.recognizedImageNodes.append(boxNode)
@@ -288,61 +288,4 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         }
     }
 
-var generatedColors = Set<String>()
-extension UIColor {
-    
-    static func generateColor(random: Bool) -> UIColor {
-        var uniqueColor: UIColor
-        var colorKey: String
-
-        let colorsSelection = [UIColor.red, UIColor.green, UIColor.blue, UIColor.yellow, UIColor.gray, UIColor.brown, UIColor.purple, UIColor.cyan, UIColor.magenta, UIColor.orange]
-        repeat {
-            let random = Int.random(in: 0..<colorsSelection.count)
-            
-            uniqueColor = colorsSelection[random]
-            colorKey = uniqueColor.accessibilityName
-        } while generatedColors.contains(colorKey)
-        
-        generatedColors.insert(colorKey)
-        return uniqueColor
-    }
-    
-    static func color(from string: String) -> UIColor{
-        let s = string.lowercased()
-        switch true {
-            case s.contains("red"):
-                return UIColor.red
-            case s.contains("green"):
-                return UIColor.green
-            case s.contains("blue"):
-                return UIColor.blue
-            case s.contains("yellow"):
-                return UIColor.yellow
-            case s.contains("gray"):
-                return UIColor.gray
-            case s.contains("brown"):
-                return UIColor.brown
-            case s.contains("purple"):
-                return UIColor.purple
-            case s.contains("cyan"):
-                return UIColor.cyan
-            case s.contains("magenta"):
-                return UIColor.magenta
-            case s.contains("orange"):
-                return UIColor.orange
-            case s.contains("white"):
-                return UIColor.white
-            case s.contains("black"):
-                return UIColor.black
-            default:
-                return UIColor.red
-            }
-    }
-}
-extension float4x4 {
-    init(translation: SIMD3<Float>) {
-        self = matrix_identity_float4x4
-        columns.3 = SIMD4<Float>(translation.x, translation.y, translation.z, 1)
-    }
-}
 
