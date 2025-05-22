@@ -113,7 +113,6 @@
 		B7034E092A59679200A777B6 /* autoMapping */ = {
 			isa = PBXGroup;
 			children = (
-				84A9C4582DDF85EF0044D1E0 /* ImageDetectionUtils.swift */,
 				84B5639C2CCA597600F640E6 /* Preview Content */,
 				3FAEB5542B14DC430064EAD9 /* pages */,
 				B727B1432A65AC330062D65A /* Room.usdz */,
@@ -131,6 +130,7 @@
 				B7B4D6202A629EC00091C052 /* Origin.swift */,
 				7B86046E2AAEE53700DD5A44 /* extensionARWorldMap.swift */,
 				7BC408C12AB006730048F519 /* Utils.swift */,
+				84A9C4582DDF85EF0044D1E0 /* ImageDetectionUtils.swift */,
 				7BBB1BC12AB4092A00613D02 /* extensionNotificationName.swift */,
 				7B3C0A112AB9876A00162095 /* CMMotionDetector.swift */,
 				84B563942CCA582600F640E6 /* CoreDataManager.swift */,
