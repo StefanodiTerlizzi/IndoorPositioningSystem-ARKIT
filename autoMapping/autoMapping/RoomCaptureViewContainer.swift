@@ -185,7 +185,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             box.materials = [material]
             
             let boxNode = SCNNode(geometry: box)
-            let orientation = SCNMatrix4(imageAnchor.transform)
             
             boxNode.simdTransform = imageAnchor.transform
             boxNode.name = referenceImageName

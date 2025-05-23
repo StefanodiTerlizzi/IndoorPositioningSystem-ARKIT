@@ -45,6 +45,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
         try room.export(to: usdzURL, exportOptions: [.mesh])
         scene = try SCNScene(url: usdzURL)
         for node in newNodes {
+            var notfound = true
             let stringMatrixPosition = node["transformPosition"] as? [String] ?? []
             let matrixPosition: [Float] = stringMatrixPosition.compactMap {Float($0)}
             let transformPosition = simd_float3(matrixPosition[0], matrixPosition[1], matrixPosition[2])
@@ -58,24 +59,61 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                 simd_float4(matrix[12], matrix[13], matrix[14], matrix[15])
             )
             
+            let stringMatrixWall = node["wallTransform"] as? [String] ?? []
+            let matrixWall: [Float] = stringMatrixWall.compactMap {Float($0)}
+            let wallTransform = simd_float4x4(
+                simd_float4(matrixWall[0], matrixWall[1], matrixWall[2], matrixWall[3]),
+                simd_float4(matrixWall[4], matrixWall[5], matrixWall[6], matrixWall[7]),
+                simd_float4(matrixWall[8], matrixWall[9], matrixWall[10], matrixWall[11]),
+                simd_float4(matrixWall[12], matrixWall[13], matrixWall[14], matrixWall[15])
+            )
+            
+            let stringDimension = node["dimension"] as? [String] ?? []
+            let dimensionMatrix: [Float] = stringDimension.compactMap {Float($0)}
+            let dimension = SIMD3(dimensionMatrix[0],  dimensionMatrix[1],dimensionMatrix[2])
+            
             let nodeColor: String = node["nodeColor"] as? String ?? "red"
             let imageName: String = node["imageName"] as? String ?? "Unknown"
-            if let wallID:String = node["wallID"] as? String,
-               let wall: CapturedStructure.Surface = findWall(from: walls, toId: wallID){
+            if let wallID:String = node["wallID"] as? String, let wall: CapturedStructure.Surface = findWall(from: walls, toId: wallID){
                 print("found wall with id:\(wallID)")
+                notfound = false
                 let wallPosition = SIMD3(wall.transform.columns.3.x,
-                                              wall.transform.columns.3.y,
-                                              wall.transform.columns.3.z)
+                                         wall.transform.columns.3.y,
+                                         wall.transform.columns.3.z)
                 let nodeGlobalTrasnsformPosition = calcTransformPosition(from: wallPosition, with: transformPosition)
-                
-                let n = createNode(transform: transform,
-                                   transformPosition: transformPosition,
+                  
+                let nodeTransform = computeTransform(originalTransformA: wallTransform, originalTransformB: wall.transform, updatedTransformB: transform)
+                let n = createNode(transform: nodeTransform,
+                                   dimension: dimension,
+                                   transformPosition: nodeGlobalTrasnsformPosition,
                                    named: imageName,
                                    color: nodeColor)
-                
+                    
                 scene.rootNode.addChildNode(n)
                 print("new nodes added!")
+                
             }
+            if notfound{
+                if let wallMatch: CapturedStructure.Surface = findMatchingWallByGeometry(originalTransform: wallTransform, room: room) {
+                    print("found wall with geometry Match with id:\(wallMatch.identifier.uuidString)")
+                    let wallPosition = SIMD3(wallMatch.transform.columns.3.x,
+                                             wallMatch.transform.columns.3.y,
+                                             wallMatch.transform.columns.3.z)
+                    let nodeGlobalTrasnsformPosition = calcTransformPosition(from: wallPosition, with: transformPosition)
+                    let nodeTransform = computeTransform(originalTransformA: wallTransform, originalTransformB: wallMatch.transform, updatedTransformB: transform)
+                    
+                    let n = createNode(transform: nodeTransform,
+                                       dimension: dimension,
+                                       transformPosition: nodeGlobalTrasnsformPosition,
+                                       named: imageName,
+                                       color: nodeColor)
+                    
+                    scene.rootNode.addChildNode(n)
+                    print("new nodes added!")
+                    
+                }
+            }
+               
         }
         
     } catch {
@@ -85,23 +123,46 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
     return scene
 }
 
-func createNode(transform matrix: simd_float4x4, transformPosition matrixPosition: simd_float3, named name: String, color colorName: String) -> SCNNode{
+func extractScale(from transform: simd_float4x4) -> SIMD3<Float> {
+    let scaleX = simd_length(SIMD3(transform.columns.0.x,
+                                   transform.columns.0.y,
+                                   transform.columns.0.z))
+    let scaleY = simd_length(SIMD3(transform.columns.1.x,
+                                   transform.columns.1.y,
+                                   transform.columns.1.z))
+    let scaleZ = simd_length(SIMD3(transform.columns.2.x,
+                                   transform.columns.2.y,
+                                   transform.columns.2.z))
     
-    let scaleX = simd_length(matrix.columns.0)
-    let scaleY = simd_length(matrix.columns.1)
-    let scaleZ = simd_length(matrix.columns.2)
+    return SIMD3<Float>(scaleX, scaleY, scaleZ)
+}
+
+func computeTransform(originalTransformA: simd_float4x4, originalTransformB: simd_float4x4, updatedTransformB: simd_float4x4) -> simd_float4x4 {
+    
+    let inverseB = simd_inverse(originalTransformB)
+    let relativeA_B = inverseB * originalTransformA
+    let updateA = updatedTransformB * simd_inverse(relativeA_B)
+    
+    return updateA
+}
+
+
+func createNode(transform matrix: simd_float4x4, dimension: simd_float3, transformPosition matrixPosition: simd_float3, named name: String, color colorName: String) -> SCNNode{
+    
     let uiColor = UIColor.color(from: colorName).withAlphaComponent(0.5)
     let material = SCNMaterial()
     material.diffuse.contents = uiColor
     material.isDoubleSided = true
     material.blendMode = .alpha
     
-    let box = SCNBox(width: CGFloat(scaleX), height: CGFloat(scaleY), length: CGFloat(scaleZ), chamferRadius: 0)
+    
+    
+    let box = SCNBox(width: CGFloat(dimension.x), height: CGFloat(dimension.y), length: CGFloat(dimension.y), chamferRadius: 0)
     box.materials = [material]
     
     let boxNode = SCNNode(geometry: box)
-    boxNode.simdTransform = matrix
     boxNode.name = name
+    boxNode.simdTransform = matrix
     boxNode.simdWorldPosition.x = matrixPosition.x
     boxNode.simdWorldPosition.z = matrixPosition.z
     
@@ -116,6 +177,50 @@ func findWall(from walls: [CapturedStructure.Surface], toId wallId: String ) -> 
         }
     }
     return nil
+}
+
+
+func isSegmentContained(smallStart: SIMD2<Float>, smallEnd: SIMD2<Float>,
+                        bigStart: SIMD2<Float>, bigEnd: SIMD2<Float>) -> Bool {
+    let d = normalize(bigEnd - bigStart)
+    let projectedSmallStart = dot(smallStart - bigStart, d)
+    let projectedSmallEnd = dot(smallEnd - bigStart, d)
+    return projectedSmallStart >= 0 && projectedSmallEnd <= length(bigEnd - bigStart)
+}
+
+/// Trova il muro fused che meglio corrisponde a quello originale
+@available(iOS 17.0, *)
+func findMatchingWallByGeometry(originalTransform: simd_float4x4,
+                                room: CapturedStructure) -> CapturedRoom.Surface? {
+
+    let (origStart, origEnd) = wallEndpoint(from: originalTransform)
+
+    var bestMatch: Float? = nil
+    var closestWall: CapturedRoom.Surface? = nil
+
+    for wall in room.walls {
+        let (mergedInit, mergedFinish) = wallEndpoints(from:wall)
+        let mergedStart = SIMD2(mergedInit.x, mergedInit.z)
+        let mergedEnd = SIMD2(mergedFinish.x, mergedFinish.z)
+
+
+        // Controlla inclusione
+        let included = isSegmentContained(smallStart: origStart, smallEnd: origEnd,
+                                          bigStart: mergedStart, bigEnd: mergedEnd)
+        if !included { continue }
+
+        // Distanza minima tra segmenti (come fallback)
+        let midOrig = (origStart + origEnd) / 2
+        let midMerged = (mergedStart + mergedEnd) / 2
+        let distance = length(midOrig - midMerged)
+
+        if bestMatch == nil || distance < bestMatch! {
+            bestMatch = distance
+            closestWall = wall
+        }
+    }
+
+    return closestWall
 }
 
 
@@ -137,6 +242,15 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
             }
             let name = n.name ?? "Unknown"
             
+            let matrix_4 = wall.transform.columns.0
+            let matrix_5 = wall.transform.columns.1
+            let matrix_6 = wall.transform.columns.2
+            let matrix_7 = wall.transform.columns.3
+            let wallTransform: [String] = ["\(matrix_4.x)", "\(matrix_5.x)", "\(matrix_6.x)", "\(matrix_7.x)",
+                                           "\(matrix_4.y)", "\(matrix_5.y)", "\(matrix_6.y)", "\(matrix_7.x)",
+                                           "\(matrix_4.z)", "\(matrix_5.z)", "\(matrix_6.z)", "\(matrix_7.x)",
+                                           "\(matrix_4.w)", "\(matrix_5.w)", "\(matrix_6.w)", "\(matrix_7.x)"]
+            
             let matrix_0 = objectTransform.columns.0
             let matrix_1 = objectTransform.columns.1
             let matrix_2 = objectTransform.columns.2
@@ -148,16 +262,23 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
             
             let transformPosition: [String] = ["\(relative.x)", "\(relative.y)", "\(relative.z)"]
             
-            let dict: [String: Any] = [
-                "wallID": wall.identifier.uuidString,
-                "transform" : transform,
-                "transformPosition": transformPosition,
-                "nodeColor": colorName,
-                "imageName": name
-            ]
+            if let geometry = n.geometry as? SCNBox{
+                let dimension:[String] = ["\(geometry.width)", "\(geometry.height)", "\(geometry.length)"]
+                
+                let dict: [String: Any] = [
+                    "wallID": wall.identifier.uuidString,
+                    "wallTransform": wallTransform,
+                    "transform" : transform,
+                    "transformPosition": transformPosition,
+                    "dimension": dimension,
+                    "nodeColor": colorName,
+                    "imageName": name
+                ]
+                
+                resultArray.append(dict)
+                print("new object added to json: \(url.description)")
+            }
             
-            resultArray.append(dict)
-            print("new object added to json: \(url.description)")
         }
     }
     
@@ -194,6 +315,21 @@ func wallEndpoints(from wall: CapturedRoom.Surface) -> (startPoint: SIMD3<Float>
     return (startPoint, endPoint)
 }
 
+func wallEndpoint(from wall: simd_float4x4) -> (startPoint: SIMD2<Float>, endPoint: SIMD2<Float>) {
+    let center = SIMD2<Float>(wall.columns.3.x,
+                              wall.columns.3.z)
+        
+    let direction = SIMD2<Float>(wall.columns.0.x,
+                                 wall.columns.0.z)
+    let length = simd_length(SIMD2<Float>(wall.columns.0.x, wall.columns.0.z))
+    let halfLength = length / 2.0
+        
+    let startPoint = center - direction * halfLength
+    let endPoint = center + direction * halfLength
+        
+    return (startPoint, endPoint)
+}
+
 func projectPointOnLineSegment(point: SIMD3<Float>, start: SIMD3<Float>, end: SIMD3<Float>) -> SIMD3<Float> {
     let lineVec = end - start
     let t = max(0, min(1, simd_dot(point - start, lineVec) / simd_length_squared(lineVec)))
@@ -219,6 +355,7 @@ func findWallForObject(in room: CapturedRoom, objectTransform: simd_float4x4) ->
             closestWall = wall
         }
     }
+    
     return closestWall
 }
 
