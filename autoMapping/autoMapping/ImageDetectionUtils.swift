@@ -70,7 +70,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
             
             let stringDimension = node["dimension"] as? [String] ?? []
             let dimensionMatrix: [Float] = stringDimension.compactMap {Float($0)}
-            let dimension = SIMD3(dimensionMatrix[0],  dimensionMatrix[1],dimensionMatrix[2])
+            let dimension = SIMD3(dimensionMatrix[0],  dimensionMatrix[1], dimensionMatrix[2])
             
             let nodeColor: String = node["nodeColor"] as? String ?? "red"
             let imageName: String = node["imageName"] as? String ?? "Unknown"
@@ -82,7 +82,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                                          wall.transform.columns.3.z)
                 let nodeGlobalTrasnsformPosition = calcTransformPosition(from: wallPosition, with: transformPosition)
                   
-                let nodeTransform = computeTransform(originalTransformA: wallTransform, originalTransformB: wall.transform, updatedTransformB: transform)
+                let nodeTransform = computeTransform(originalTransformA: wall.transform, originalTransformB: transform)
                 let n = createNode(transform: nodeTransform,
                                    dimension: dimension,
                                    transformPosition: nodeGlobalTrasnsformPosition,
@@ -100,7 +100,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                                              wallMatch.transform.columns.3.y,
                                              wallMatch.transform.columns.3.z)
                     let nodeGlobalTrasnsformPosition = calcTransformPosition(from: wallPosition, with: transformPosition)
-                    let nodeTransform = computeTransform(originalTransformA: wallTransform, originalTransformB: wallMatch.transform, updatedTransformB: transform)
+                    let nodeTransform = computeTransform(originalTransformA: wallMatch.transform, originalTransformB: transform)
                     
                     let n = createNode(transform: nodeTransform,
                                        dimension: dimension,
@@ -137,13 +137,23 @@ func extractScale(from transform: simd_float4x4) -> SIMD3<Float> {
     return SIMD3<Float>(scaleX, scaleY, scaleZ)
 }
 
-func computeTransform(originalTransformA: simd_float4x4, originalTransformB: simd_float4x4, updatedTransformB: simd_float4x4) -> simd_float4x4 {
+func computeTransform(originalTransformA: simd_float4x4, originalTransformB targetTransform: simd_float4x4) -> simd_float4x4 {
     
-    let inverseB = simd_inverse(originalTransformB)
-    let relativeA_B = inverseB * originalTransformA
-    let updateA = updatedTransformB * simd_inverse(relativeA_B)
+    let rotationQuaternion = simd_quatf(originalTransformA)
+    let pureRotationMatrix = matrix_float4x4(rotationQuaternion)
     
-    return updateA
+    let position = targetTransform.columns.3
+    let scaleX = simd_length(targetTransform.columns.0)
+    let scaleY = simd_length(targetTransform.columns.1)
+    let scaleZ = simd_length(targetTransform.columns.2)
+    var newTransform = pureRotationMatrix
+    newTransform.columns.0 *= scaleX
+    newTransform.columns.1 *= scaleY
+    newTransform.columns.2 *= scaleZ
+    newTransform.columns.3 = position
+
+    
+    return newTransform
 }
 
 
@@ -240,7 +250,8 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
             if let color = n.geometry?.firstMaterial?.diffuse.contents as? UIColor {
                 colorName = color.accessibilityName
             }
-            let name = n.name ?? "Unknown"
+            var name = n.name ?? "Unknown"
+            name = name.replacingOccurrences(of: "_", with: " ")
             
             let matrix_4 = wall.transform.columns.0
             let matrix_5 = wall.transform.columns.1
@@ -422,9 +433,9 @@ func loadNodesJson(from url: URL) -> [[String: Any]]{
 
 func verifyImageName(nameSearch: String) -> Bool {
     var verify: Bool = false
-    let names: [String] = CoreDataManager.shared.fetchAllItemNames()
-    for name in names {
-        if name == nameSearch {
+    let items: [Item] = CoreDataManager.shared.fetchAllItem()
+    for item in items {
+        if item.name == nameSearch {
             verify = true
         }
     }

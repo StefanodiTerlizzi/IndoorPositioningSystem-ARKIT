@@ -37,10 +37,6 @@ struct SCNViewContainer: UIViewRepresentable {
     init() {
         print("init SCNViewContainer")
         massCenter.worldPosition = SCNVector3(0, 0, 0)
-        let tapGestureRecognizer = UITapGestureRecognizer(
-            target: self,
-            action: #selector(gestureDelegate.handleTap(gestureRecognize:)))
-        scnView.addGestureRecognizer(tapGestureRecognizer)
     }
     
     func RotoActivePlusMinus(_ plus: Bool) {
@@ -71,10 +67,6 @@ struct SCNViewContainer: UIViewRepresentable {
         drawContent(borders: borders, artWorks: artWorksName)
         setMassCenter()
         setCamera()
-        let tapGestureRecognizer = UITapGestureRecognizer(
-            target: self,
-            action: #selector(gestureDelegate.handleTap(gestureRecognize:)))
-        scnView.addGestureRecognizer(tapGestureRecognizer)
         NotificationCenter
             .default
             .post(name: .genericMessage, object: "map loaded correctly")
@@ -96,10 +88,6 @@ struct SCNViewContainer: UIViewRepresentable {
         drawContent(borders: borders, artWorks: artWorksName)
         setMassCenter()
         setCamera()
-        let tapGestureRecognizer = UITapGestureRecognizer(
-            target: self,
-            action: #selector(gestureDelegate.handleTap(gestureRecognize:)))
-        scnView.addGestureRecognizer(tapGestureRecognizer)
         NotificationCenter
             .default
             .post(name: .genericMessage, 
@@ -182,8 +170,9 @@ struct SCNViewContainer: UIViewRepresentable {
     }
     
     func isPresent(elem elementName: String, array elements: [(name: String, color: String)]) -> Bool{
+        let nameElement = elementName.replacingOccurrences(of: "_", with: " ")
         
-        let present = elements.contains {$0.name == elementName}
+        let present = elements.contains {$0.name == nameElement}
         
         return present
     }
@@ -437,13 +426,14 @@ struct SCNViewContainer: UIViewRepresentable {
         //scnView.scene = try! SCNScene(named: "Room.usdz")!
         //scnView.backgroundColor = UIColor.darkGray
         // add a tap gesture recognizer
+        scnView.isUserInteractionEnabled=true
         print("add a tap gesture recognizer")
-        handler.scnView = scnView
-        let tapGesture = UIGestureRecognizer(
-            target: self,
+        let tapGesture = UITapGestureRecognizer(
+            target: handler,
             action: #selector(self.handler.handleTap(_:))
         )
         scnView.addGestureRecognizer(tapGesture)
+        handler.scnView = scnView
         return scnView
     }
 
@@ -454,7 +444,7 @@ class HandleTap: UIViewController {
     var scnView: SCNView?
     
     @objc func handleTap(_ gestureRecognize: UITapGestureRecognizer) {
-         print("handleTap")
+         print("handleTap: map")
         /*guard let renderer = delegate.lastRenderer else { return }
         let hits = renderer.hitTest(event.location, options: nil)
         if let tappedNode = hits.first?.node {
@@ -465,6 +455,13 @@ class HandleTap: UIViewController {
         let hitResults = scnView!.hitTest(p, options: nil)
         if let tappedNode = hitResults.first?.node {
             print(tappedNode)
+            let tappedNode_name = tappedNode.name!.replacingOccurrences(of: "_", with: " ")
+            if verifyImageName(nameSearch: tappedNode_name) {
+                NotificationCenter.default.post(
+                    name: Notification.Name("OpenArtWork"),
+                    object: nil,
+                    userInfo: [ "artWorkName": tappedNode_name ])
+            }
         }
       }
 }

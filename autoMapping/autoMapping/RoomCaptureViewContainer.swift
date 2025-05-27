@@ -84,8 +84,11 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     
     
     func loadImages(mapName: String, image: UIImage, name: String, author: String, description: String, width: String, height: String){
-        let x_size: Float = Float(width) ?? 0.1
-        let y_size: Float = Float(height) ?? 0.1
+        let x = width.replacingOccurrences(of: ",", with: ".")
+        let y = height.replacingOccurrences(of: ",", with: ".")
+        
+        let x_size: Float = Float(x) ?? 0.1
+        let y_size: Float = Float(y) ?? 0.1
         let color = UIColor.generateColor(random: true)
         CoreDataManager.shared.saveItem(names: name, authors: author, mapNames: mapName, x_sizes: x_size, y_sizes: y_size, comments: description, images: image, itemColors: color)
         NotificationCenter.default.post(
@@ -188,8 +191,8 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             
             boxNode.simdTransform = imageAnchor.transform
             boxNode.name = referenceImageName
-            let deltaZ = (scaleZ - height) / 2.0
-            boxNode.simdWorldPosition.z -= deltaZ
+            let deltaZ = (height) / 2.0
+            boxNode.simdWorldPosition.z += deltaZ
 
             DispatchQueue.main.async{
                 self.recognizedImageNodes.append(boxNode)

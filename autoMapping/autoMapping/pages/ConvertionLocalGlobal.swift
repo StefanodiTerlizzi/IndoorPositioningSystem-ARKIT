@@ -43,6 +43,8 @@ struct ConvertionLocalGlobal: View {
     @State private var availableMaps: [String] = []
     @State private var filteredLocalMaps: [String] = []
     
+    @State private var showInfoArtWork = false
+    
     
     func printOriginalDimensionsOfSelectedNode(selectedNode: SCNNode) {
         if let geometry = selectedNode.geometry {
@@ -178,211 +180,286 @@ struct ConvertionLocalGlobal: View {
     //    }
     
     var body: some View {
-        VStack{
-            if !responseFromServer {
-                
-                VStack{
-                    Text("CREATE MATRIX").bold().font(.largeTitle)
-                    //global map
-                    Text("GLOBAL Map").bold().font(.title3)
-                }
-                
-                HStack{
-                    Button("+"){
-                        globalView.zoomIn()
-                    }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(8)
-                    Button("-"){
-                        globalView.zoomOut()
-                    }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(8)
-                }
-                
-                globalView
-                    .border(Color.white)
-                    .padding()
-                    .shadow(color: Color.gray, radius: 3)
-                
-                HStack {
-                    Picker("Choose Global Node", selection: $selectedGlobalNodeName) {
-                        Text("Choose Global Node")
-                        ForEach(globalNodes, id: \.self) {Text($0)}
-                    }.onChange(of: selectedGlobalNodeName, perform: { _ in
-                        globalView.changeColorOfNode(nodeName: selectedGlobalNodeName, color: UIColor.green, mapName: selectedMap)
-                        
-                        let firstTwoLetters = String(selectedGlobalNodeName.prefix(2))
-                        
-                        localNodes = localView.scnView.scene?.rootNode.childNodes(passingTest: {
-                            n, _ in n.name != nil && n.name!.starts(with: firstTwoLetters) && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp"
-                        })
-                        .sorted(by: {a, b in a.scale.x > b.scale.x})
-                        .map{node in node.name ?? "nil"} ?? []
-                        
-                        //print("\n\n\(localNodes)\n\n")
-                        
-                        selectedGlobalNode = globalView.scnView.scene?.rootNode.childNodes(passingTest: {n,_ in n.name != nil && n.name! == selectedGlobalNodeName}).first
-                        
-                    })
+        ZStack{
+            VStack{
+                if !responseFromServer {
                     
-                    
-                    if let _size = selectedGlobalNode?.scale {Text("\(_size.x) \(_size.y) \(_size.z)")
+                    VStack{
+                        Text("CREATE MATRIX").bold().font(.largeTitle)
+                        //global map
+                        Text("GLOBAL Map").bold().font(.title3)
                     }
                     
-                }
-                
-                Divider().background(Color.black).shadow(radius: 100)
-                
-                //Local map
-                if let _localMaps = localMaps {
-                    HStack{
-                        //Text("Local Maps Availables: \(_localMaps.count.codingKey.stringValue)")
-                        //Text("Selected map: \(selectedMap)")
-                        Text("LOCAL Map").bold().font(.title3)
-                    }
-                    Picker("", selection: $selectedMap) {
-                        Text("Choose Local Map").foregroundColor(.white)
-                        ForEach(_localMaps, id: \.lastPathComponent) {Text($0.lastPathComponent)}
-                    }.onChange(of: selectedMap, perform: { _ in
-                        localView.loadRoomMaps(name: selectedMap, borders: false)
-                        
-                        
-                        let numbersCharacterSet = CharacterSet.decimalDigits
-                        let map = selectedMap.components(separatedBy: numbersCharacterSet).joined()
-                        
-                        
-                        globalView.loadgeneralMap(borders: false, name: map)
-                        
-                        localNodes = localView.scnView.scene?.rootNode.childNodes(passingTest: {
-                            n,_ in n.name != nil && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp"
-                        })
-                        .sorted(by: {a,b in a.scale.x>b.scale.x})
-                        .map{node in node.name ?? "nil"} ?? []
-                        
-                        print("Child Nodes: \(String(describing: localView.scnView.scene?.rootNode.childNodes))")
-                    })
-                }
-                
-                if selectedMap != "" {
                     HStack{
                         Button("+"){
-                            localView.zoomIn()
-                        }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(6)
+                            globalView.zoomIn()
+                        }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(8)
                         Button("-"){
-                            localView.zoomOut()
-                        }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(6)
-                        
+                            globalView.zoomOut()
+                        }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(8)
                     }
                     
-                    
-                    localView
+                    globalView
                         .border(Color.white)
                         .padding()
                         .shadow(color: Color.gray, radius: 3)
                     
-                    
                     HStack {
-                        Picker("", selection: $selectedLocalNodeName) {
-                            Text("Choose Local Node").foregroundColor(.white)
-                            ForEach(localNodes, id: \.self) {Text($0)}
-                        }.onChange(of: selectedLocalNodeName, perform: { _ in
-                            localView.changeColorOfNode(nodeName: selectedLocalNodeName, color: UIColor.green, mapName: selectedMap)
-                            selectedLocalNode = localView.scnView.scene?.rootNode.childNodes(passingTest: {n,_ in n.name != nil && n.name! == selectedLocalNodeName}).first
+                        Picker("Choose Global Node", selection: $selectedGlobalNodeName) {
+                            Text("Choose Global Node")
+                            ForEach(globalNodes, id: \.self) {Text($0)}
+                        }.onChange(of: selectedGlobalNodeName, perform: { _ in
+                            globalView.changeColorOfNode(nodeName: selectedGlobalNodeName, color: UIColor.green, mapName: selectedMap)
                             
-                            // updateGlobalNodes(selectedLocalNodeName: selectedLocalNodeName)
+                            let firstTwoLetters = String(selectedGlobalNodeName.prefix(2))
                             
-                            let firstTwoLettersLocal = String(selectedLocalNodeName.prefix(2))
-                            
-                            globalNodes = globalView.scnView.scene?.rootNode.childNodes(passingTest: {
-                                n, _ in n.name != nil && n.name!.starts(with: firstTwoLettersLocal) && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp"
+                            localNodes = localView.scnView.scene?.rootNode.childNodes(passingTest: {
+                                n, _ in n.name != nil && n.name!.starts(with: firstTwoLetters) && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp"
                             })
                             .sorted(by: {a, b in a.scale.x > b.scale.x})
                             .map{node in node.name ?? "nil"} ?? []
                             
+                            //print("\n\n\(localNodes)\n\n")
                             
-                            globalNodes = orderBySimilarity(
-                                node: selectedLocalNode!,
-                                listOfNodes: globalView.scnView.scene!.rootNode.childNodes(passingTest: {
-                                    n,_ in n.name != nil && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp" && n.name! != "__selected__"
-                                })
-                            ).map{node in node.name ?? "nil"}
+                            selectedGlobalNode = globalView.scnView.scene?.rootNode.childNodes(passingTest: {n,_ in n.name != nil && n.name! == selectedGlobalNodeName}).first
+                            
                         })
-                        if let _size = selectedLocalNode?.scale {Text("\(_size.x) \(_size.y) \(_size.z)")}
+                        
+                        
+                        if let _size = selectedGlobalNode?.scale {Text("\(_size.x) \(_size.y) \(_size.z)")
+                        }
+                        
                     }
                     
+                    Divider().background(Color.black).shadow(radius: 100)
                     
-                   
-                }
-                HStack {
-                    if let _selectedLocalNode = selectedLocalNode,
-                       let _selectedGlobalNode = selectedGlobalNode {
-                        Button("confirm relation"){
+                    //Local map
+                    if let _localMaps = localMaps {
+                        HStack{
+                            //Text("Local Maps Availables: \(_localMaps.count.codingKey.stringValue)")
+                            //Text("Selected map: \(selectedMap)")
+                            Text("LOCAL Map").bold().font(.title3)
+                        }
+                        Picker("", selection: $selectedMap) {
+                            Text("Choose Local Map").foregroundColor(.white)
+                            ForEach(_localMaps, id: \.lastPathComponent) {Text($0.lastPathComponent)}
+                        }.onChange(of: selectedMap, perform: { _ in
+                            localView.loadRoomMaps(name: selectedMap, borders: false)
                             
-                            matchingNodesForAPI.append((_selectedLocalNode, _selectedGlobalNode))
-                            print(_selectedLocalNode)
-                            print(_selectedGlobalNode)
-                            print(selectedMap)
-                            print(matchingNodesForAPI)
                             
-                        }.buttonStyle(.bordered)
-                            .background(Color(red: 240/255, green: 151/255, blue: 45/255))
-                            .cornerRadius(6)
-                            .bold()
+                            let numbersCharacterSet = CharacterSet.decimalDigits
+                            let map = selectedMap.components(separatedBy: numbersCharacterSet).joined()
+                            
+                            
+                            globalView.loadgeneralMap(borders: false, name: map)
+                            
+                            localNodes = localView.scnView.scene?.rootNode.childNodes(passingTest: {
+                                n,_ in n.name != nil && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp"
+                            })
+                            .sorted(by: {a,b in a.scale.x>b.scale.x})
+                            .map{node in node.name ?? "nil"} ?? []
+                            
+                            print("Child Nodes: \(String(describing: localView.scnView.scene?.rootNode.childNodes))")
+                        })
                     }
-                    Text("matched nodes: \(matchingNodesForAPI.count)")
                     
-                    
-                    if matchingNodesForAPI.count >= 3 {
-                        Button("ransac Alignment API"){
-                            Task {
+                    if selectedMap != "" {
+                        HStack{
+                            Button("+"){
+                                localView.zoomIn()
+                            }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(6)
+                            Button("-"){
+                                localView.zoomOut()
+                            }.buttonStyle(.bordered).bold().background(Color(red: 255/255, green: 235/255, blue: 205/255)).cornerRadius(6)
+                            
+                        }
+                        
+                        
+                        localView
+                            .border(Color.white)
+                            .padding()
+                            .shadow(color: Color.gray, radius: 3)
+                        
+                        
+                        HStack {
+                            Picker("", selection: $selectedLocalNodeName) {
+                                Text("Choose Local Node").foregroundColor(.white)
+                                ForEach(localNodes, id: \.self) {Text($0)}
+                            }.onChange(of: selectedLocalNodeName, perform: { _ in
+                                localView.changeColorOfNode(nodeName: selectedLocalNodeName, color: UIColor.green, mapName: selectedMap)
+                                selectedLocalNode = localView.scnView.scene?.rootNode.childNodes(passingTest: {n,_ in n.name != nil && n.name! == selectedLocalNodeName}).first
+                                
+                                // updateGlobalNodes(selectedLocalNodeName: selectedLocalNodeName)
+                                
+                                let firstTwoLettersLocal = String(selectedLocalNodeName.prefix(2))
+                                
+                                globalNodes = globalView.scnView.scene?.rootNode.childNodes(passingTest: {
+                                    n, _ in n.name != nil && n.name!.starts(with: firstTwoLettersLocal) && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp"
+                                })
+                                .sorted(by: {a, b in a.scale.x > b.scale.x})
+                                .map{node in node.name ?? "nil"} ?? []
+                                
+                                
+                                globalNodes = orderBySimilarity(
+                                    node: selectedLocalNode!,
+                                    listOfNodes: globalView.scnView.scene!.rootNode.childNodes(passingTest: {
+                                        n,_ in n.name != nil && n.name! != "Room" && n.name! != "Geom" && String(n.name!.suffix(4)) != "_grp" && n.name! != "__selected__"
+                                    })
+                                ).map{node in node.name ?? "nil"}
+                            })
+                            if let _size = selectedLocalNode?.scale {Text("\(_size.x) \(_size.y) \(_size.z)")}
+                        }
+                        
+                        
+                       
+                    }
+                    HStack {
+                        if let _selectedLocalNode = selectedLocalNode,
+                           let _selectedGlobalNode = selectedGlobalNode {
+                            Button("confirm relation"){
+                                
+                                matchingNodesForAPI.append((_selectedLocalNode, _selectedGlobalNode))
+                                print(_selectedLocalNode)
+                                print(_selectedGlobalNode)
                                 print(selectedMap)
                                 print(matchingNodesForAPI)
-                                response = try await fetchAPIConversionLocalGlobal(localName: selectedMap, nodesList: matchingNodesForAPI)
-                                responseFromServer = true
+                                
+                            }.buttonStyle(.bordered)
+                                .background(Color(red: 240/255, green: 151/255, blue: 45/255))
+                                .cornerRadius(6)
+                                .bold()
+                        }
+                        Text("matched nodes: \(matchingNodesForAPI.count)")
+                        
+                        
+                        if matchingNodesForAPI.count >= 3 {
+                            Button("ransac Alignment API"){
+                                Task {
+                                    print(selectedMap)
+                                    print(matchingNodesForAPI)
+                                    response = try await fetchAPIConversionLocalGlobal(localName: selectedMap, nodesList: matchingNodesForAPI)
+                                    responseFromServer = true
+                                }
+                            }.buttonStyle(.bordered)
+                                .background(Color(red: 255/255, green: 235/255, blue: 205/255))
+                                .cornerRadius(6)
+                                .bold()
+                        }
+                    }
+                }
+                
+                if responseFromServer {
+                    Text("visualize response")
+                    if let _res = response.0 {Text("status code: \(_res.statusCode)")}
+                    let _ = print(response.1)
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            ForEach(response.1.sorted(by: {a,b in a.key.count > b.key.count}), id: \.key) { k,v in
+                                if k=="err" {
+                                    Text("\(k) -> \(v as! String)")
+                                } else {
+                                    let _v = v as! [String: Any]
+                                    Text(k)
+                                    if let reg_result = _v["reg_result"] as? String {Text(reg_result)}
+                                    Text("R_Y")
+                                    Text(printMatrix(matrix: _v["R_Y"] as! [[Double]], decimal: 4))
+                                    
+                                    Text("diffMatrices")
+                                    Text(printMatrix(matrix: _v["diffMatrices"] as! [[Double]], decimal: 4))
+                                    
+                                    Text("translation")
+                                    Text(printMatrix(matrix: _v["translation"] as! [[Double]], decimal: 4))
+                                    
+                                }
+                                
+                                Divider()
                             }
+                        }
+                        Button("save response") {
+                            saveConversionGlobalLocal(response.1)
                         }.buttonStyle(.bordered)
                             .background(Color(red: 255/255, green: 235/255, blue: 205/255))
                             .cornerRadius(6)
                             .bold()
                     }
                 }
-            }
-            
-            if responseFromServer {
-                Text("visualize response")
-                if let _res = response.0 {Text("status code: \(_res.statusCode)")}
-                let _ = print(response.1)
-                ScrollView {
-                    VStack(alignment: .leading) {
-                        ForEach(response.1.sorted(by: {a,b in a.key.count > b.key.count}), id: \.key) { k,v in
-                            if k=="err" {
-                                Text("\(k) -> \(v as! String)")
-                            } else {
-                                let _v = v as! [String: Any]
-                                Text(k)
-                                if let reg_result = _v["reg_result"] as? String {Text(reg_result)}
-                                Text("R_Y")
-                                Text(printMatrix(matrix: _v["R_Y"] as! [[Double]], decimal: 4))
-                                
-                                Text("diffMatrices")
-                                Text(printMatrix(matrix: _v["diffMatrices"] as! [[Double]], decimal: 4))
-                                
-                                Text("translation")
-                                Text(printMatrix(matrix: _v["translation"] as! [[Double]], decimal: 4))
-                                
-                            }
-                            
-                            Divider()
-                        }
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(red: 11/255, green: 121/255, blue: 157/255))
+                .foregroundColor(.white).blur(radius: showInfoArtWork  ? 3:0)
+                .onAppear{
+                    self.showInfoArtWork = false
+                }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("OpenArtWork"))) { notification in
+                    if let userInfo = notification.userInfo,
+                       let artWorkName = userInfo["artWorkName"] as? String {
+                        self.setArtWorkAlert(with: artWorkName)
+                        print("Show art work")
                     }
-                    Button("save response") {
-                        saveConversionGlobalLocal(response.1)
-                    }.buttonStyle(.bordered)
-                        .background(Color(red: 255/255, green: 235/255, blue: 205/255))
-                        .cornerRadius(6)
-                        .bold()
+                    
+                }
+            
+            if showInfoArtWork {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                VStack{
+                    AlertForImages.frame(maxWidth:300).background(Color.white.opacity(0.5)).cornerRadius(12).shadow(radius: 20).padding()
                 }
             }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(red: 11/255, green: 121/255, blue: 157/255))
-            .foregroundColor(.white)
+            
+        }
+        
+    }
+    
+    func setArtWorkAlert(with artWorkName: String) {
+        let numbersCharacterSet = CharacterSet.decimalDigits
+        let map = selectedMap.components(separatedBy: numbersCharacterSet).joined()
+        let itemImage = CoreDataManager.shared.fetchItemByName_AndMap(name: artWorkName, mapName: map)
+        if itemImage != nil{
+            workName = itemImage?.name ?? "Unknown"
+            workAuthor = itemImage?.author ?? "Unknown"
+            workDescription = itemImage?.comment ?? " "
+            workDimension = "\(Float(itemImage!.x_size)) x \(Float(itemImage!.y_size))"
+            if let imageData = itemImage?.imageData, let uiImage = UIImage(data: imageData){
+                workImage = uiImage
+            }
+            self.showInfoArtWork = true
+        } else {
+            print("No artwork item retrived")
+        }
+    }
+    
+    func closeImageAlert() {
+        self.showInfoArtWork = false
+    }
+    @State private var workName: String = ""
+    @State private var workAuthor: String = ""
+    @State private var workDescription: String = ""
+    @State private var workDimension: String = ""
+    @State private var workImage: UIImage = UIImage()
+    private var AlertForImages: some View {
+        VStack(spacing:20){
+            Text("Works of Art Info").font(.headline).padding(.top)
+            
+            Image(uiImage: workImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 200, height: 200)
+            VStack(spacing:0){
+                Text("Name: \(workName)").padding(.horizontal).multilineTextAlignment(/*@START_MENU_TOKEN@*/.leading/*@END_MENU_TOKEN@*/)
+                Divider()
+                Text("Author: \(workAuthor)").padding(.horizontal).multilineTextAlignment(/*@START_MENU_TOKEN@*/.leading/*@END_MENU_TOKEN@*/)
+                Divider()
+                Text("Description: \(workDescription)").padding(.horizontal).multilineTextAlignment(/*@START_MENU_TOKEN@*/.leading/*@END_MENU_TOKEN@*/)
+                Divider()
+                Text("Dimension: \(workDimension)").padding(.horizontal).multilineTextAlignment(/*@START_MENU_TOKEN@*/.leading/*@END_MENU_TOKEN@*/)
+            }.background(Color.white).cornerRadius(12)
+            
+            Divider()
+            VStack{
+                Button(action: {closeImageAlert()}, label: {
+                    Text("Close")
+                }).frame(maxWidth:.infinity).foregroundColor(/*@START_MENU_TOKEN@*/.blue/*@END_MENU_TOKEN@*/)
+            }
+            
+        }.padding()
     }
     
 }

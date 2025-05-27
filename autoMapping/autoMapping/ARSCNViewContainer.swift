@@ -28,6 +28,7 @@ struct ARSCNViewContainer: UIViewRepresentable {
         //Set lighting to the view
         sceneView.autoenablesDefaultLighting = true
         sceneView.automaticallyUpdatesLighting = true
+        sceneView.isUserInteractionEnabled = true
         return sceneView
     }
     
@@ -110,7 +111,7 @@ struct ARSCNViewContainer: UIViewRepresentable {
         
         configuration.initialWorldMap = worldMap
         
-        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(delegate.handleTap(gestureRecognize:)))
+        let tapGestureRecognizer = UITapGestureRecognizer(target: delegate, action: #selector(delegate.handleTap(gestureRecognize:)))
         sceneView.addGestureRecognizer(tapGestureRecognizer)
         sceneView.debugOptions = [.showFeaturePoints, .showWorldOrigin]
         sceneView.session.run(configuration, options: options)

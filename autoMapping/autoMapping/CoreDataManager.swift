@@ -46,7 +46,8 @@ class CoreDataManager {
         let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
         
         do {
-            return try context.fetch(fetchRequest)
+            let result = try context.fetch(fetchRequest)
+            return result
         } catch {
             print("Error, data not retrieved: \(error)")
             return []
@@ -58,6 +59,23 @@ class CoreDataManager {
         let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
         
         fetchRequest.predicate = NSPredicate(format: "name == %@", name)
+        
+        do {
+            let result = try context.fetch(fetchRequest)
+            return result.first
+        } catch {
+            print("Error, Item not retrieved: \(error)")
+            return nil
+        }
+    }
+    
+    func fetchItemByName_AndMap(name: String, mapName: String) -> Item? {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+        
+        let namePredicate = NSPredicate(format: "name == %@", name)
+        let mapNamePredicate = NSPredicate(format: "mapName == %@", mapName)
+        fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [namePredicate, mapNamePredicate])
         
         do {
             let result = try context.fetch(fetchRequest)
