@@ -167,7 +167,7 @@ func createNode(transform matrix: simd_float4x4, dimension: simd_float3, transfo
     
     
     
-    let box = SCNBox(width: CGFloat(dimension.x), height: CGFloat(dimension.y), length: CGFloat(dimension.y), chamferRadius: 0)
+    let box = SCNBox(width: CGFloat(dimension.x), height: CGFloat(dimension.z), length: CGFloat(dimension.y), chamferRadius: 0)
     box.materials = [material]
     
     let boxNode = SCNNode(geometry: box)

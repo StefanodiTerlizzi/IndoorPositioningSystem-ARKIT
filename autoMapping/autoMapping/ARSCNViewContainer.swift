@@ -277,7 +277,8 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         
         if let result = hitTestResults.first {
             let tappedNode = result.node
-            if tappedNode.geometry is SCNBox && verifyImageName(nameSearch: tappedNode.name ?? "N/A"){
+            let tappedNode_name = tappedNode.name!.replacingOccurrences(of: "_", with: " ")
+            if tappedNode.geometry is SCNBox && verifyImageName(nameSearch: tappedNode_name){
                 showInfoPanel(for: tappedNode)
             }
         }
@@ -291,7 +292,8 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         let panelNode = SCNNode(geometry: panel)
         
         let material = SCNMaterial()
-        let infoItem: Item? = CoreDataManager.shared.fetchItemByName(name: node.name ?? "Unknown image")
+        let nodeName = node.name!.replacingOccurrences(of: "_", with: " ")
+        let infoItem: Item? = CoreDataManager.shared.fetchItemByName(name: nodeName)
         if infoItem == nil{return}
         let infoView = createInfoView(infoItem: infoItem, parentNode: panelNode)
         material.diffuse.contents = infoView.asImage()
@@ -329,7 +331,7 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
         view.addSubview(imageView)
         
         let dimensionLabel = UILabel(frame: CGRect(x: 10, y: 260, width: 280, height: 20))
-        dimensionLabel.text = "Dimension: \(String(describing: infoItem?.x_size)) x \(String(describing: infoItem?.y_size))."
+        dimensionLabel.text = "Dimension: \(Float(infoItem!.x_size)) x \(Float(infoItem!.y_size))."
         view.addSubview(dimensionLabel)
         
         let closeButton = UIButton(frame: CGRect(x:10, y: 10, width: 20, height: 20))
