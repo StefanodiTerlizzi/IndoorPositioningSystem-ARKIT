@@ -191,14 +191,29 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             
             boxNode.simdTransform = imageAnchor.transform
             boxNode.name = referenceImageName
-            let deltaZ = (height) / 2.0
-            boxNode.simdWorldPosition.z += deltaZ
+            let yRotation = boxNode.eulerAngles.y
+            if isClose(yRotation, to: 0) {
+                boxNode.position.z += (height/2)
+            } else if isClose(yRotation, to: .pi / 2) {
+                boxNode.position.x += (width/2)
+            } else if isClose(yRotation, to: .pi) {
+                boxNode.position.z -= (height)
+            } else if isClose(yRotation, to: (3 * .pi) / 2) || isClose(yRotation, to: -.pi / 2) {
+                boxNode.position.x -= (width/2)
+            } else {
+                print("Orientamento intermedio: \(yRotation) rad")
+            }
+            
 
             DispatchQueue.main.async{
                 self.recognizedImageNodes.append(boxNode)
                 CoreDataManager.shared.setIsDetected(forName: referenceImageName!)
                 print("Image:\(String(describing: referenceImageName)), found")
             }
+        }
+        
+        func isClose(_ a: Float, to b: Float, tolerance: Float = .pi / 4) -> Bool {
+            return abs(a - b) < tolerance
         }
             
             func captureSession(_ session: RoomCaptureSession, didAdd room: CapturedRoom) {

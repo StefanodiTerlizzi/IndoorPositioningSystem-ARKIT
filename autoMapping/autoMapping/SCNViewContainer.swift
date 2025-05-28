@@ -21,6 +21,8 @@ struct SCNViewContainer: UIViewRepresentable {
     
     var handler = HandleTap()
     
+    var allignment: Bool = false
+    
     var cameraNode = SCNNode()
     var massCenter = SCNNode()
     

@@ -77,9 +77,11 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
             if let wallID:String = node["wallID"] as? String, let wall: CapturedStructure.Surface = findWall(from: walls, toId: wallID){
                 print("found wall with id:\(wallID)")
                 notfound = false
+                
                 let wallPosition = SIMD3(wall.transform.columns.3.x,
                                          wall.transform.columns.3.y,
                                          wall.transform.columns.3.z)
+                
                 let nodeGlobalTrasnsformPosition = calcTransformPosition(from: wallPosition, with: transformPosition)
                   
                 let nodeTransform = computeTransform(originalTransformA: wall.transform, originalTransformB: transform)
@@ -99,6 +101,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                     let wallPosition = SIMD3(wallMatch.transform.columns.3.x,
                                              wallMatch.transform.columns.3.y,
                                              wallMatch.transform.columns.3.z)
+                    
                     let nodeGlobalTrasnsformPosition = calcTransformPosition(from: wallPosition, with: transformPosition)
                     let nodeTransform = computeTransform(originalTransformA: wallMatch.transform, originalTransformB: transform)
                     
@@ -147,9 +150,6 @@ func computeTransform(originalTransformA: simd_float4x4, originalTransformB targ
     let scaleY = simd_length(targetTransform.columns.1)
     let scaleZ = simd_length(targetTransform.columns.2)
     var newTransform = pureRotationMatrix
-    newTransform.columns.0 *= scaleX
-    newTransform.columns.1 *= scaleY
-    newTransform.columns.2 *= scaleZ
     newTransform.columns.3 = position
 
     
@@ -204,33 +204,58 @@ func findMatchingWallByGeometry(originalTransform: simd_float4x4,
                                 room: CapturedStructure) -> CapturedRoom.Surface? {
 
     let (origStart, origEnd) = wallEndpoint(from: originalTransform)
+    let origDir = normalize(origEnd - origStart)
+    let origMid = (origStart + origEnd) / 2
+    let origLength = simd_length(origEnd - origStart)
 
-    var bestMatch: Float? = nil
-    var closestWall: CapturedRoom.Surface? = nil
+    var bestWall: CapturedRoom.Surface? = nil
+    var lowestScore: Float = .greatestFiniteMagnitude
 
     for wall in room.walls {
-        let (mergedInit, mergedFinish) = wallEndpoints(from:wall)
-        let mergedStart = SIMD2(mergedInit.x, mergedInit.z)
-        let mergedEnd = SIMD2(mergedFinish.x, mergedFinish.z)
+        let (mergedStart3D, mergedEnd3D) = wallEndpoints(from: wall)
+        let mergedStart = SIMD2<Float>(mergedStart3D.x, mergedStart3D.z)
+        let mergedEnd = SIMD2<Float>(mergedEnd3D.x, mergedEnd3D.z)
 
-
-        // Controlla inclusione
+        // Controllo di inclusione
         let included = isSegmentContained(smallStart: origStart, smallEnd: origEnd,
                                           bigStart: mergedStart, bigEnd: mergedEnd)
         if !included { continue }
 
-        // Distanza minima tra segmenti (come fallback)
-        let midOrig = (origStart + origEnd) / 2
-        let midMerged = (mergedStart + mergedEnd) / 2
-        let distance = length(midOrig - midMerged)
+        let mergedDir = normalize(mergedEnd - mergedStart)
+        let mergedMid = (mergedStart + mergedEnd) / 2
+        let mergedLength = simd_length(mergedEnd - mergedStart)
+        
+        func clamp<T: Comparable>(_ value: T, min minValue: T, max maxValue: T) -> T {
+            return min(max(value, minValue), maxValue)
+        }
 
-        if bestMatch == nil || distance < bestMatch! {
-            bestMatch = distance
-            closestWall = wall
+        // Calcolo delle metriche di confronto
+        let midDist = simd_length(origMid - mergedMid)
+        let angle = acos(clamp(dot(origDir, mergedDir), min:-1,max: 1))
+        let angleDiff = min(angle, Float.pi - angle)
+        let lengthDiff = abs(mergedLength - origLength)
+
+        func pointToSegmentDistance(p: SIMD2<Float>, a: SIMD2<Float>, b: SIMD2<Float>) -> Float {
+            let ab = b - a
+            let t = clamp(dot(p - a, ab) / dot(ab, ab), min:0, max:1)
+            let projection = a + t * ab
+            return simd_length(p - projection)
+        }
+
+        let perpDist1 = pointToSegmentDistance(p: origStart, a: mergedStart, b: mergedEnd)
+        let perpDist2 = pointToSegmentDistance(p: origEnd, a: mergedStart, b: mergedEnd)
+        let avgPerpDist = (perpDist1 + perpDist2) / 2
+
+        // Calcolo del punteggio complessivo
+        let score = midDist * 1.0 + angleDiff * 2.0 + avgPerpDist * 2.0 + lengthDiff * 0.2
+
+        if score < lowestScore {
+            lowestScore = score
+            bestWall = wall
         }
     }
 
-    return closestWall
+    return bestWall
 }
 
 
