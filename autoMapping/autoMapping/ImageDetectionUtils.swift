@@ -283,6 +283,7 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
             }
             var name = n.name ?? "Unknown"
             name = name.replacingOccurrences(of: "_", with: " ")
+            name = name.replacingOccurrences(of: "__apos__", with: "'")
             
             let matrix_4 = wall.transform.columns.0
             let matrix_5 = wall.transform.columns.1
@@ -532,8 +533,10 @@ func extractReferenceImagesFormap(mapNameRef: String) -> Set<ARReferenceImage>? 
             
             let imageSizeInMeters: CGFloat = CGFloat(item.x_size)
             let arImage = ARReferenceImage(cgImage, orientation: .up, physicalWidth: imageSizeInMeters)
+            var name = item.name ?? "Unknown Image"
+            name = name.replacingOccurrences(of: "'", with: "__apos__")
             
-            arImage.name = item.name ?? "Unknown Image"
+            arImage.name = name
             referenceImages.insert(arImage)
             
         }
