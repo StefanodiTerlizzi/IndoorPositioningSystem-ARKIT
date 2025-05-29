@@ -178,6 +178,25 @@ func saveJSONMap(_ room: CapturedRoom, _ name: String, _ newNode: [SCNNode]) {
         if !newNode.isEmpty{
             try generateJsonForNode(for: newNode, in: room, to: Model.shared.directoryURL.appending(path: "JsonNode").appendingPathComponent("\(generalMapName).json"))
         }
+        
+        let wallURL: URL = Model.shared.directoryURL.appending(path: "JsonNode").appendingPathComponent("\(generalMapName)WALL.json")
+    
+        var wallIDlist: [String] = []
+        for wallID in room.walls {
+            wallIDlist.append(wallID.identifier.uuidString)
+        }
+        if FileManager.default.fileExists(atPath: wallURL.path) {
+            let existingWallData = try Data(contentsOf: wallURL)
+            if let existingWallArray = try JSONSerialization.jsonObject(with: existingWallData) as? [String] {
+                for elem in existingWallArray {
+                    wallIDlist.append(elem)
+                }
+            }
+        }
+        
+        let Walldata = try JSONSerialization.data(withJSONObject: wallIDlist, options: .prettyPrinted)
+        try Walldata.write(to: wallURL)
+        
         NotificationCenter.default.post(name: .genericMessage, object: "saved JSON: true")
         
     } catch {
@@ -276,8 +295,7 @@ func mergeSelectedRooms(mapName: String) {
                                             metadataURL: metadataDestinationURL,
                                             exportOptions: [.mesh])
                 }else{
-                    
-                     let scene = addNodeToMergedRooms(to: f, for: nodes)
+                     let scene = addNodeToMergedRooms(to: f, for: nodes, url: Model.shared.directoryURL.appending(path: "JsonNode").appendingPathComponent("\(mapName)WALL.json"))
                      let option: [String: Any] = [
                          "SCNSceneExportCreateNormalsIfAbsent": true,
                          "SCNSceneExportEmbedTextures": true,

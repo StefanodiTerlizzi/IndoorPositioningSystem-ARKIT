@@ -34,7 +34,7 @@ func addNodesToUSDZ(room: CapturedRoom ,newNodes: [SCNNode]) -> SCNScene{
 
 
 @available(iOS 17.0, *)
-func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: Any]]) -> SCNScene {
+func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: Any]], url wallUrl: URL) -> SCNScene {
     let fileManager = FileManager.default
     let tempDir = fileManager.temporaryDirectory
     let usdzURL = tempDir.appendingPathComponent("tempRoom.usdz")
@@ -96,7 +96,8 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                 
             }
             if notfound{
-                if let wallMatch: CapturedStructure.Surface = findMatchingWallByGeometry(originalTransform: wallTransform, room: room) {
+                let WallIDs: [String] = loadWallIDs(from: wallUrl)
+                if let wallMatch: CapturedStructure.Surface = findMatchingWallByGeometry(originalTransform: wallTransform, room: room, wallIDs: WallIDs) {
                     print("found wall with geometry Match with id:\(wallMatch.identifier.uuidString)")
                     let wallPosition = SIMD3(wallMatch.transform.columns.3.x,
                                              wallMatch.transform.columns.3.y,
@@ -201,7 +202,7 @@ func isSegmentContained(smallStart: SIMD2<Float>, smallEnd: SIMD2<Float>,
 /// Trova il muro fused che meglio corrisponde a quello originale
 @available(iOS 17.0, *)
 func findMatchingWallByGeometry(originalTransform: simd_float4x4,
-                                room: CapturedStructure) -> CapturedRoom.Surface? {
+                                room: CapturedStructure, wallIDs: [String]) -> CapturedRoom.Surface? {
 
     let (origStart, origEnd) = wallEndpoint(from: originalTransform)
     let origDir = normalize(origEnd - origStart)
@@ -210,8 +211,12 @@ func findMatchingWallByGeometry(originalTransform: simd_float4x4,
 
     var bestWall: CapturedRoom.Surface? = nil
     var lowestScore: Float = .greatestFiniteMagnitude
+    var cont:Int=0
 
     for wall in room.walls {
+        if wallIDs.contains(wall.identifier.uuidString) {continue}
+        cont+=1
+        
         let (mergedStart3D, mergedEnd3D) = wallEndpoints(from: wall)
         let mergedStart = SIMD2<Float>(mergedStart3D.x, mergedStart3D.z)
         let mergedEnd = SIMD2<Float>(mergedEnd3D.x, mergedEnd3D.z)
@@ -247,21 +252,22 @@ func findMatchingWallByGeometry(originalTransform: simd_float4x4,
         let avgPerpDist = (perpDist1 + perpDist2) / 2
 
         // Calcolo del punteggio complessivo
-        let score = midDist * 1.0 + angleDiff * 2.0 + avgPerpDist * 2.0 + lengthDiff * 0.2
+        let score =  angleDiff * 5.0 + avgPerpDist * 5.0 + midDist * 0.1 + lengthDiff * 0.01
 
         if score < lowestScore {
             lowestScore = score
             bestWall = wall
         }
     }
-
+    print(cont)
     return bestWall
 }
 
 
 func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: URL) throws {
-    var resultArray: [[String: Any]] = []
     print("genereting json...")
+    
+    var resultArray: [[String: Any]] = []
     for n in nodes {
         let objectTransform = n.simdTransform
         
@@ -446,6 +452,21 @@ func loadNodesJson(from url: URL) -> [[String: Any]]{
         let data = try Data(contentsOf: url)
 
         guard let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
+            print("Invalid JSON structure")
+            return []
+        }
+        return jsonArray
+    } catch {
+        print("Invalid JSON structure")
+        return []
+    }
+}
+
+func loadWallIDs(from url: URL) ->[String] {
+    do{
+        let data = try Data(contentsOf: url)
+
+        guard let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [String] else {
             print("Invalid JSON structure")
             return []
         }

@@ -182,7 +182,7 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             material.isDoubleSided = true
             material.blendMode = .alpha
             let width = Float(referenceImage.physicalSize.width) * scaleX
-            let height = 0.2 * scaleZ
+            let height = 0.3 * scaleZ
             let lenght = Float(referenceImage.physicalSize.height) * scaleY
             let box = SCNBox(width: CGFloat(width), height: CGFloat(height), length: CGFloat(lenght), chamferRadius: 0)
             box.materials = [material]
@@ -191,18 +191,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             
             boxNode.simdTransform = imageAnchor.transform
             boxNode.name = referenceImageName
-            let yRotation = boxNode.eulerAngles.y
-            if isClose(yRotation, to: 0) {
-                boxNode.position.z += (height/2)
-            } else if isClose(yRotation, to: .pi / 2) {
-                boxNode.position.x += (width/2)
-            } else if isClose(yRotation, to: .pi) {
-                boxNode.position.z -= (height)
-            } else if isClose(yRotation, to: (3 * .pi) / 2) || isClose(yRotation, to: -.pi / 2) {
-                boxNode.position.x -= (width/2)
-            } else {
-                print("Orientamento intermedio: \(yRotation) rad")
-            }
             
 
             DispatchQueue.main.async{
