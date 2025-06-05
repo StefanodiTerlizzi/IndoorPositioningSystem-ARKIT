@@ -216,9 +216,9 @@ class ARSCNDelegate: NSObject, ARSCNViewDelegate {
             let height = referenceImage.physicalSize.height
             let material = SCNMaterial()
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
-            var color = "red"
-            if itemImage != nil { color = itemImage?.itemColor ?? "red"}
-            let uiColor = UIColor.color(from: color).withAlphaComponent(0.5)
+            var color = "FF0000"
+            if itemImage != nil { color = itemImage?.itemColor ?? "FF0000"}
+            let uiColor = UIColor.fromHex(color)!
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
             material.blendMode = .alpha

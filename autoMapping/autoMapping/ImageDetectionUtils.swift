@@ -72,7 +72,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
             let dimensionMatrix: [Float] = stringDimension.compactMap {Float($0)}
             let dimension = SIMD3(dimensionMatrix[0],  dimensionMatrix[1], dimensionMatrix[2])
             
-            let nodeColor: String = node["nodeColor"] as? String ?? "red"
+            let nodeColor: String = node["nodeColor"] as? String ?? "#FF0000"
             let imageName: String = node["imageName"] as? String ?? "Unknown"
             if let wallID:String = node["wallID"] as? String, let wall: CapturedStructure.Surface = findWall(from: walls, toId: wallID){
                 print("found wall with id:\(wallID)")
@@ -160,7 +160,7 @@ func computeTransform(originalTransformA: simd_float4x4, originalTransformB targ
 
 func createNode(transform matrix: simd_float4x4, dimension: simd_float3, transformPosition matrixPosition: simd_float3, named name: String, color colorName: String) -> SCNNode{
     
-    let uiColor = UIColor.color(from: colorName).withAlphaComponent(0.5)
+    let uiColor = UIColor.fromHex(colorName)!
     let material = SCNMaterial()
     material.diffuse.contents = uiColor
     material.isDoubleSided = true
@@ -277,10 +277,11 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
                                           wall.transform.columns.3.y,
                                           wall.transform.columns.3.z)
             let relative = relativeTransformPosition(of: nodePosition, to: wallPosition)
-            var colorName = "red"
+            var colorName = "#FF0000"
             if let color = n.geometry?.firstMaterial?.diffuse.contents as? UIColor {
-                colorName = color.accessibilityName
+                colorName = color.toHex()!
             }
+            print("node color hex: \(colorName)")
             var name = n.name ?? "Unknown"
             name = name.replacingOccurrences(of: "_", with: " ")
             name = name.replacingOccurrences(of: "__apos__", with: "'")
@@ -557,6 +558,26 @@ func extractArtWorksName(mapName:String) -> [Item] {
     return artWorks
 }
 
+func centerCamera(on scene: SCNScene, cameraNode: SCNNode) {
+    let (min, Max) = scene.rootNode.boundingBox
+    
+    let dx = Max.x - min.x
+    let dy = Max.y - min.y
+    let dz = Max.z - min.z
+    let maxDimension = max(dx, dy, dz)
+    
+    let centerX = (min.x + Max.x) / 2
+    let centerY = (min.y + Max.y) / 2
+    let centerZ = (min.z + Max.z) / 2
+    let center = SCNVector3(centerX, centerY, centerZ)
+    
+    let distance = maxDimension * 1
+    let height = maxDimension * 1.5
+    
+    cameraNode.position = SCNVector3(centerX, centerY + Float(height), centerZ + Float(distance))
+    cameraNode.look(at: center)
+}
+
 extension UIView {
     func asImage() -> UIImage {
         let renderer = UIGraphicsImageRenderer(bounds: bounds)
@@ -574,19 +595,73 @@ extension UIColor {
         var uniqueColor: UIColor
         var colorKey: String
 
-        let colorsSelection = [UIColor.red, UIColor.green, UIColor.blue, UIColor.yellow, UIColor.gray, UIColor.brown, UIColor.purple, UIColor.cyan, UIColor.magenta, UIColor.orange]
         repeat {
-            let random = Int.random(in: 0..<colorsSelection.count)
+            let hue = CGFloat.random(in: 0...1)
+            let saturation = CGFloat.random(in: 0.5...1.0)   // Evita il bianco
+            let brightness = CGFloat.random(in: 0.5...1.0)   // Evita il nero
+            uniqueColor = UIColor(hue: hue, saturation: saturation, brightness: brightness, alpha: 1.0)
+                
             
-            uniqueColor = colorsSelection[random]
-            colorKey = uniqueColor.accessibilityName
-            if generatedColors.count >= 10{
-                generatedColors.remove(colorKey)
-            }
+            colorKey = uniqueColor.toHex()!
+            
         } while generatedColors.contains(colorKey)
         
         generatedColors.insert(colorKey)
+        print("generated color: \(colorKey)")
         return uniqueColor
+    }
+    
+    // UIColor → HEX
+    func toHex(includeAlpha: Bool = false) -> String? {
+            guard let components = self.cgColor.components else { return nil }
+
+            let r = components[0]
+            let g = components.count >= 3 ? components[1] : r
+            let b = components.count >= 3 ? components[2] : r
+            let a = self.cgColor.alpha
+
+            if includeAlpha {
+                return String(format: "#%02lX%02lX%02lX%02lX",
+                              lroundf(Float(r * 255)),
+                              lroundf(Float(g * 255)),
+                              lroundf(Float(b * 255)),
+                              lroundf(Float(a * 255)))
+            } else {
+                return String(format: "#%02lX%02lX%02lX",
+                              lroundf(Float(r * 255)),
+                              lroundf(Float(g * 255)),
+                              lroundf(Float(b * 255)))
+            }
+    }
+
+    // 2. HEX string → UIColor
+    static func fromHex(_ hex: String) -> UIColor? {
+        var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if hexString.hasPrefix("#") {
+            hexString.removeFirst()
+        }
+
+        var rgbValue: UInt64 = 0
+        guard Scanner(string: hexString).scanHexInt64(&rgbValue) else { return nil }
+
+        switch hexString.count {
+        case 6: // #RRGGBB
+            return UIColor(
+                red: CGFloat((rgbValue & 0xFF0000) >> 16) / 255,
+                green: CGFloat((rgbValue & 0x00FF00) >> 8) / 255,
+                blue: CGFloat(rgbValue & 0x0000FF) / 255,
+                alpha: 1.0
+            )
+        case 8: // #RRGGBBAA
+            return UIColor(
+                red: CGFloat((rgbValue & 0xFF000000) >> 24) / 255,
+                green: CGFloat((rgbValue & 0x00FF0000) >> 16) / 255,
+                blue: CGFloat((rgbValue & 0x0000FF00) >> 8) / 255,
+                alpha: CGFloat(rgbValue & 0x000000FF) / 255
+            )
+        default:
+            return nil
+        }
     }
     
     static func color(from string: String) -> UIColor{
@@ -621,6 +696,8 @@ extension UIColor {
             }
     }
 }
+
+
 extension float4x4 {
     init(translation: SIMD3<Float>) {
         self = matrix_identity_float4x4

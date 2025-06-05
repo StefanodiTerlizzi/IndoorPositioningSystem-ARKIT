@@ -205,7 +205,7 @@ func saveJSONMap(_ room: CapturedRoom, _ name: String, _ newNode: [SCNNode]) {
     }
 }
 
-func saveUSDZMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
+func saveUSDZMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) -> SCNScene? {
     
     do {
         if newNodes.isEmpty{
@@ -226,6 +226,8 @@ func saveUSDZMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
                     exportOptions: [.parametric]
                 )
             }
+            NotificationCenter.default.post(name: .genericMessage, object: "saved USDZ: true")
+            return nil
         } else {
             let scene = addNodesToUSDZ(room: room, newNodes: newNodes)
             let option: [String: Any] = [
@@ -244,12 +246,14 @@ func saveUSDZMap(_ room: CapturedRoom, _ name: String, _ newNodes: [SCNNode]) {
                 } else {
                     print("export progress:\(totalProgres)")
                 }})
-            
+            NotificationCenter.default.post(name: .genericMessage, object: "saved USDZ: true")
+            return scene
         }
-        NotificationCenter.default.post(name: .genericMessage, object: "saved USDZ: true")
+        
     } catch {
         print("Error = \(error)")
         NotificationCenter.default.post(name: .genericMessage, object: "saved USDZ: false")
+        return nil
     }
 }
 

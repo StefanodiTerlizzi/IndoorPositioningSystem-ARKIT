@@ -264,7 +264,7 @@ struct Navigation: View {
                             Text("ArtWork in map:")
                             ScrollView{
                                 ForEach(worldImageFind, id:\.self){ val in
-                                    Text(val.name ?? "Unknown Image").font(.footnote).foregroundColor(Color(UIColor.color(from: val.itemColor ?? "white")))
+                                    Text(val.name ?? "Unknown Image").font(.footnote).foregroundColor(Color(UIColor.fromHex(val.itemColor ?? "#FFFFFF")!))
                                 }
                             }.frame(maxHeight:30)
                         }

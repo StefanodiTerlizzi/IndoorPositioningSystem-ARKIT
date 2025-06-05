@@ -31,7 +31,7 @@ class CoreDataManager {
         newItem.y_size = y_sizes
         newItem.comment = comments
         newItem.imageData = images.pngData()
-        newItem.itemColor = itemColors.accessibilityName
+        newItem.itemColor = itemColors.toHex()
         newItem.isDetected = false
         
         do {
@@ -134,7 +134,7 @@ class CoreDataManager {
         }
     }
     
-    func setIsDetected(forName name: String) {
+    func setIsDetected(forName name: String, detected: Bool = true) {
         let context = persistentContainer.viewContext
         let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
         
@@ -142,7 +142,7 @@ class CoreDataManager {
         
         do {
             let item = try context.fetch(fetchRequest).first
-            item?.isDetected = true
+            item?.isDetected = detected
             
             try context.save()
         } catch {

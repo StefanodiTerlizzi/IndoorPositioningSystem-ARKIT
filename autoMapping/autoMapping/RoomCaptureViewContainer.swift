@@ -99,15 +99,72 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
     }
     
     func continueCapture(mapname:String) {
+        if let sceneView = sessionDelegate.sceneViewOverlay {
+            sceneView.removeFromSuperview()
+            sessionDelegate.sceneViewOverlay = nil
+            roomCaptureView?.isHidden = false
+        }
         sessionDelegate.deleteNodes()
         startImageDetection(mapNameSelected: mapname)
         roomCaptureView!.captureSession.run(configuration: configuration)
     }
     
     func redoCapture(mapname:String) {
+        if let sceneView = sessionDelegate.sceneViewOverlay {
+            sceneView.removeFromSuperview()
+            sessionDelegate.sceneViewOverlay = nil
+            roomCaptureView?.isHidden = false
+        }
+        for n in sessionDelegate.recognizedImageNodes{
+            var name = n.name ?? "Unknown"
+            name = name.replacingOccurrences(of: "_", with: " ")
+            name = name.replacingOccurrences(of: "__apos__", with: "'")
+            CoreDataManager.shared.setIsDetected(forName: name, detected: false)
+        }
         sessionDelegate.deleteNodes()
-        startImageDetection(mapNameSelected: mapname)
+        SessionDelegate.save = false
+        
+        if #available(iOS 17.0, *) {
+            roomCaptureView!.captureSession.stop(pauseARSession: false)
+        } else {
+            roomCaptureView!.captureSession.stop()
+        }
+        
         roomCaptureView!.captureSession.run(configuration: configuration)
+        startImageDetection(mapNameSelected: mapname)
+        
+    }
+    
+    func showCustomScene(_ scene: SCNScene) {
+        DispatchQueue.main.async {
+            guard let roomCaptureView = self.roomCaptureView,
+                  let superview = roomCaptureView.superview else { return }
+
+            roomCaptureView.isHidden = true
+
+            let scnView = SCNView(frame: roomCaptureView.frame)
+            let cameraNode = SCNNode()
+            cameraNode.camera = SCNCamera()
+            scene.rootNode.addChildNode(cameraNode)
+            
+            centerCamera(on: scene, cameraNode: cameraNode)
+            
+            scnView.scene = scene
+            scnView.pointOfView = cameraNode
+            scnView.allowsCameraControl = true
+            scnView.autoenablesDefaultLighting = true 
+            
+            self.sessionDelegate.sceneViewOverlay = scnView
+
+            superview.addSubview(scnView)
+            scnView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                scnView.topAnchor.constraint(equalTo: roomCaptureView.topAnchor),
+                scnView.bottomAnchor.constraint(equalTo: roomCaptureView.bottomAnchor),
+                scnView.leadingAnchor.constraint(equalTo: roomCaptureView.leadingAnchor),
+                scnView.trailingAnchor.constraint(equalTo: roomCaptureView.trailingAnchor)
+            ])
+        }
     }
     
     class SessionDelegate: UIViewController, RoomCaptureSessionDelegate, RoomCaptureViewDelegate, ARSessionDelegate {
@@ -115,6 +172,8 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
         var currentMapName: String?
         
         var finalResults: CapturedRoom?
+        
+        var sceneViewOverlay: SCNView?
         
         var roomBuilder = RoomBuilder(options: [.beautifyObjects])
         
@@ -174,9 +233,10 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             let scaleZ = simd_length(transform.columns.2)
             
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
-            var color = "red"
-            if itemImage != nil { color = itemImage?.itemColor ?? "red"}
-            let uiColor = UIColor.color(from: color).withAlphaComponent(0.5)
+            var color = "#FF0000"
+            if itemImage != nil { color = (itemImage?.itemColor)! }
+            print("node color: \(color)")
+            let uiColor = UIColor.fromHex(color)!
             let material = SCNMaterial()
             material.diffuse.contents = uiColor
             material.isDoubleSided = true
@@ -236,7 +296,12 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                     let finalroom = try! await self.roomBuilder.capturedRoom(from: data)
                     
                     saveJSONMap(finalroom, name, recognizedImageNodes)
-                    saveUSDZMap(finalroom, name, recognizedImageNodes)
+                    let scene = saveUSDZMap(finalroom, name, recognizedImageNodes)
+                    
+                    if scene != nil {
+                        print("SHOW MY ROOM")
+                        self.r?.showCustomScene(scene!)
+                    }
                     
                     session.arSession.getCurrentWorldMap(completionHandler:{ [self] worldMap, error in
                         
@@ -291,6 +356,17 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                 }
             }
         }
+    class LimitedCameraControlSCNView: SCNView, UIGestureRecognizerDelegate {
+        
+        override func didMoveToSuperview() {
+            super.didMoveToSuperview()
+            // Permetti solo rotazione e zoom (pinch), disabilita pan
+            for recognizer in self.gestureRecognizers ?? [] {
+                if let panGesture = recognizer as? UIPanGestureRecognizer {
+                    panGesture.isEnabled = false
+                }
+            }
+        }
     }
 
-
+}
