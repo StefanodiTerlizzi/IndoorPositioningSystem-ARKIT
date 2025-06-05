@@ -235,7 +235,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
             let itemImage = CoreDataManager.shared.fetchItemByName(name: referenceImageName!)
             var color = "#FF0000"
             if itemImage != nil { color = (itemImage?.itemColor)! }
-            print("node color: \(color)")
             let uiColor = UIColor.fromHex(color)!
             let material = SCNMaterial()
             material.diffuse.contents = uiColor

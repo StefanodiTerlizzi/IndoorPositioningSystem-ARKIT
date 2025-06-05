@@ -152,7 +152,7 @@ struct SCNViewContainer: UIViewRepresentable {
                 else if (isPresent(elem: $0.name!, array: artWorks)){
                     print("is present art work \($0.name!)")
                     let color = getElement(elem: $0.name!, array: artWorks) ?? "FF0000"
-                    print("draw color: \(color)")
+                    
                     let uiColor = UIColor.fromHex(color)
                     material.diffuse.contents = uiColor
                     // CONTROLLARE COME VENGONO INSERITI I COLORI

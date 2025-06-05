@@ -281,7 +281,6 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
             if let color = n.geometry?.firstMaterial?.diffuse.contents as? UIColor {
                 colorName = color.toHex()!
             }
-            print("node color hex: \(colorName)")
             var name = n.name ?? "Unknown"
             name = name.replacingOccurrences(of: "_", with: " ")
             name = name.replacingOccurrences(of: "__apos__", with: "'")
@@ -607,7 +606,6 @@ extension UIColor {
         } while generatedColors.contains(colorKey)
         
         generatedColors.insert(colorKey)
-        print("generated color: \(colorKey)")
         return uniqueColor
     }
     
