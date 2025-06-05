@@ -297,11 +297,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                     saveJSONMap(finalroom, name, recognizedImageNodes)
                     let scene = saveUSDZMap(finalroom, name, recognizedImageNodes)
                     
-                    if scene != nil {
-                        print("SHOW MY ROOM")
-                        self.r?.showCustomScene(scene!)
-                    }
-                    
                     session.arSession.getCurrentWorldMap(completionHandler:{ [self] worldMap, error in
                         
                         if let m = worldMap {
@@ -317,6 +312,12 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                             
                         }
                     })
+                    
+                    if scene != nil {
+                        print("SHOW MY ROOM")
+                        self.r?.showCustomScene(scene!)
+                    }
+                    
                 }
             }
             
