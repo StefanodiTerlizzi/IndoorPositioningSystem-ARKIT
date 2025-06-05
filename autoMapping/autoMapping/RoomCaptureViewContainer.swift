@@ -314,7 +314,6 @@ struct RoomCaptureViewContainer: UIViewRepresentable {
                     })
                     
                     if scene != nil {
-                        print("SHOW MY ROOM")
                         self.r?.showCustomScene(scene!)
                     }
                     

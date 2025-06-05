@@ -75,7 +75,6 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
             let nodeColor: String = node["nodeColor"] as? String ?? "#FF0000"
             let imageName: String = node["imageName"] as? String ?? "Unknown"
             if let wallID:String = node["wallID"] as? String, let wall: CapturedStructure.Surface = findWall(from: walls, toId: wallID){
-                print("found wall with id:\(wallID)")
                 notfound = false
                 
                 let wallPosition = SIMD3(wall.transform.columns.3.x,
@@ -92,13 +91,12 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                                    color: nodeColor)
                     
                 scene.rootNode.addChildNode(n)
-                print("new nodes added!")
+                print("new node added attached to wall with id:\(wallID)!")
                 
             }
             if notfound{
                 let WallIDs: [String] = loadWallIDs(from: wallUrl)
                 if let wallMatch: CapturedStructure.Surface = findMatchingWallByGeometry(originalTransform: wallTransform, room: room, wallIDs: WallIDs) {
-                    print("found wall with geometry Match with id:\(wallMatch.identifier.uuidString)")
                     let wallPosition = SIMD3(wallMatch.transform.columns.3.x,
                                              wallMatch.transform.columns.3.y,
                                              wallMatch.transform.columns.3.z)
@@ -113,7 +111,7 @@ func addNodeToMergedRooms(to room: CapturedStructure, for newNodes: [[String: An
                                        color: nodeColor)
                     
                     scene.rootNode.addChildNode(n)
-                    print("new nodes added!")
+                    print("new nodes add attached to wall with geometry Match with id:\(wallMatch.identifier.uuidString)")
                     
                 }
             }
@@ -319,7 +317,6 @@ func generateJsonForNode(for nodes: [SCNNode], in room: CapturedRoom, to url: UR
                 ]
                 
                 resultArray.append(dict)
-                print("new object added to json: \(url.description)")
             }
             
         }
